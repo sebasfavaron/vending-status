@@ -1,0 +1,265 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PARTE 6 - Ingenieria Inversa Avanzada y Autonomia Tecnologica</title><style>
+body{font:16px/1.6 system-ui,-apple-system,sans-serif;max-width:1040px;margin:36px auto;padding:0 18px;color:#111;background:#fff}
+nav a{margin-right:12px}
+.muted{color:#555}
+.card{border:1px solid #ddd;border-radius:10px;padding:16px 18px;margin:18px 0;background:#fafafa}
+code{background:#f3f3f3;padding:1px 4px;border-radius:4px}
+pre{background:#f6f8fa;padding:14px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+h1,h2,h3{margin-top:28px}
+ul{margin-top:8px}
+.small{font-size:13px}
+.doc-body p{margin:0 0 0.85rem 0}
+.doc-body h2{margin-top:2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+</style></head><body>
+<nav><a href="../index.html">inicio</a><a href="index.html">docs maquina</a><a href="../coordination.html">coordinacion</a></nav><hr>
+<h1>PARTE 6 - Ingenieria Inversa Avanzada y Autonomia Tecnologica</h1>
+<p class="muted">Conversión estática desde DOCX. Fuente: <code>/home/sebas/work/projects/ballbox/docs/tcn-maquinas-recibido-2026-05-26/PARTE 6 - Ingenieria Inversa Avanzada y Autonomia Tecnologica.docx</code></p>
+<div class="doc-body"><h2>Ballbox</h2>
+<h2>Documentación Maestra De Investigación Y Operación</h2>
+<h2>Parte 6</h2>
+<p>Ingeniería Inversa Avanzada y Autonomía Tecnológica</p>
+<h2>Introducción</h2>
+<p>Hasta este punto la máquina funciona.</p>
+<p>Sin embargo BallBox depende todavía de varios terceros:</p>
+<h2>Tcn</h2>
+<p>OurVend</p>
+<p>EasyCoin</p>
+<p>BillWallet</p>
+<p>La pregunta estratégica pasa a ser:</p>
+<p>¿Qué dependencias podemos eliminar?</p>
+<h2>Dependencias Actuales</h2>
+<p>Hardware</p>
+<h2>Tcn</h2>
+<p>Actualmente inevitable.</p>
+<p>Cloud</p>
+<p>OurVend</p>
+<p>Actualmente obligatorio.</p>
+<p>Pagos</p>
+<p>EasyCoin</p>
+<p>Actualmente necesario.</p>
+<p>Cobro</p>
+<p>MercadoPago</p>
+<p>Actualmente necesario.</p>
+<h2>Objetivo Final</h2>
+<p>Arquitectura deseada:</p>
+<p>Usuario</p>
+<p>↓</p>
+<h2>Atc</h2>
+<p>↓</p>
+<p>Backend BallBox</p>
+<p>↓</p>
+<p>Máquina</p>
+<p>Sin depender operativamente de:</p>
+<p>OurVend</p>
+<h2>Investigación De Protocolo</h2>
+<p>Hallazgo</p>
+<p>En logs aparece:</p>
+<p>qrc.ourvend.com</p>
+<p>puerto 4150</p>
+<p>Además aparecen:</p>
+<p>TCPClient</p>
+<p>socket connect</p>
+<p>heartbeat</p>
+<p>mensajes JSON</p>
+<p>Conclusión</p>
+<p>La máquina habla TCP.</p>
+<h2>Preguntas Abiertas</h2>
+<p>¿Cómo autentica?</p>
+<p>¿Cómo registra máquina?</p>
+<p>¿Cómo sincroniza slots?</p>
+<p>¿Cómo sincroniza stock?</p>
+<p>¿Cómo sincroniza precios?</p>
+<p>¿Cómo descarga publicidad?</p>
+<h2>Captura De Tráfico</h2>
+<p>Herramienta recomendada:</p>
+<p>Wireshark</p>
+<p>Procedimiento</p>
+<p>Conectar máquina a red controlada.</p>
+<p>Capturar tráfico.</p>
+<p>Filtrar:</p>
+<p>4150</p>
+<p>Objetivos</p>
+<p>Identificar:</p>
+<h2>Json</h2>
+<p>endpoints</p>
+<p>autenticación</p>
+<p>comandos</p>
+<h2>Ftp Detectado</h2>
+<p>Encontrado:</p>
+<p>ad.ourvend.com</p>
+<p>Usuario:</p>
+<p>ysftp</p>
+<p>Contraseña exportada.</p>
+<p>Preguntas</p>
+<p>¿FTP sigue activo?</p>
+<p>¿Se puede conectar?</p>
+<p>¿Qué directorios existen?</p>
+<p>¿Hay carpetas por Machine ID?</p>
+<p>¿Hay publicidad?</p>
+<p>¿Hay idiomas?</p>
+<p>¿Hay skins?</p>
+<h2>Experimento Ftp</h2>
+<p>Realizar desde PC.</p>
+<p>Intentar conexión.</p>
+<p>Objetivo:</p>
+<p>listar contenido.</p>
+<p>NO modificar nada.</p>
+<p>Sólo lectura.</p>
+<h2>Actualizaciones Ota</h2>
+<p>Encontrado:</p>
+<p>update.xml</p>
+<p>Servidor:</p>
+<p>tfs.android.tcnvmms.com</p>
+<p>Preguntas</p>
+<p>¿Qué actualiza?</p>
+<h2>Apk</h2>
+<p>Recursos</p>
+<p>Idiomas</p>
+<p>Configuraciones</p>
+<p>Objetivo</p>
+<p>Descargar update.xml.</p>
+<p>Analizar.</p>
+<h2>Sistema De Idiomas</h2>
+<p>Hallazgo:</p>
+<p>is_use_language_package=true</p>
+<p>Conclusión:</p>
+<p>Existe soporte para paquetes externos.</p>
+<p>Objetivo</p>
+<p>Encontrar:</p>
+<p>language package</p>
+<p>Posibles ubicaciones:</p>
+<p>Text</p>
+<p>v3Skins</p>
+<p>Android/data</p>
+<h2>Meta</h2>
+<p>Traducción completa BallBox.</p>
+<h2>V3Skins</h2>
+<p>Hipótesis:</p>
+<p>branding.</p>
+<p>Posible contenido:</p>
+<p>logos</p>
+<p>fondos</p>
+<p>colores</p>
+<p>layouts</p>
+<p>Objetivo</p>
+<p>Reemplazar identidad china.</p>
+<h2>Imagegoods</h2>
+<p>Hipótesis:</p>
+<p>imágenes de productos.</p>
+<p>Objetivo:</p>
+<p>mostrar productos propios.</p>
+<p>Sin depender aprobación manual.</p>
+<h2>Publicidad Remota</h2>
+<p>Hallazgo:</p>
+<p>AdvertRemote=false</p>
+<p>Interpretación:</p>
+<p>Función existe.</p>
+<p>Pregunta:</p>
+<p>¿Puede apuntarse a servidor propio?</p>
+<h2>Escenario Ideal</h2>
+<p>Servidor BallBox</p>
+<p>↓</p>
+<p>Publicidad</p>
+<p>↓</p>
+<p>Máquina</p>
+<p>Actualización automática.</p>
+<h2>Backend Propio</h2>
+<p>Objetivo mínimo:</p>
+<p>Dashboard.</p>
+<p>Mostrar:</p>
+<p>stock</p>
+<p>ventas</p>
+<p>conectividad</p>
+<p>estado</p>
+<p>Objetivo medio</p>
+<p>Administrar:</p>
+<p>publicidad</p>
+<p>productos</p>
+<p>precios</p>
+<p>Objetivo máximo</p>
+<p>Reemplazar OurVend.</p>
+<h2>Easycoin Como Puente Estratégico</h2>
+<p>EasyCoin permite:</p>
+<p>liberar producto</p>
+<p>sin intervención directa de OurVend.</p>
+<p>Esto es enorme.</p>
+<p>Porque permite:</p>
+<h2>Atc</h2>
+<p>↓</p>
+<p>EasyCoin</p>
+<p>↓</p>
+<p>Máquina</p>
+<p>aunque OurVend siga existiendo.</p>
+<h2>Escenario De Membresías</h2>
+<p>Socio premium.</p>
+<p>Beneficio:</p>
+<p>1 bebida gratis.</p>
+<p>ATC valida.</p>
+<p>ATC llama API EasyCoin.</p>
+<p>Máquina libera producto.</p>
+<p>Sin pago.</p>
+<h2>Escenario De Torneos</h2>
+<p>Ganador recibe premio.</p>
+<p>Premio digital.</p>
+<p>Canje en máquina.</p>
+<p>Liberación automática.</p>
+<h2>Escenario De Cupones</h2>
+<p>Código promocional.</p>
+<p>Canje.</p>
+<p>Producto.</p>
+<p>Liberación.</p>
+<h2>Dashboard Ballbox</h2>
+<p>Fase futura.</p>
+<p>Por máquina:</p>
+<p>Machine ID</p>
+<p>ubicación</p>
+<p>ventas</p>
+<p>stock</p>
+<p>última conexión</p>
+<p>temperatura</p>
+<p>estado EasyCoin</p>
+<p>estado publicidad</p>
+<h2>Alertas Futuras</h2>
+<p>Stock bajo.</p>
+<p>Temperatura fuera de rango.</p>
+<p>Sin internet.</p>
+<p>Sin ventas.</p>
+<p>Puerta abierta.</p>
+<h2>Operación A Escala</h2>
+<p>10 máquinas</p>
+<p>Control manual.</p>
+<p>50 máquinas</p>
+<p>Dashboard necesario.</p>
+<p>100 máquinas</p>
+<p>Automatización necesaria.</p>
+<p>500 máquinas</p>
+<p>Centro de operaciones.</p>
+<h2>Hipótesis Importantes</h2>
+<h2>H1</h2>
+<p>ImageGoods controla imágenes.</p>
+<h2>H2</h2>
+<p>Text controla idiomas.</p>
+<h2>H3</h2>
+<p>v3Skins controla branding.</p>
+<h2>H4</h2>
+<p>FTP distribuye publicidad.</p>
+<h2>H5</h2>
+<p>OTA distribuye recursos.</p>
+<h2>H6</h2>
+<p>Protocolo TCP es replicable.</p>
+<h2>H7</h2>
+<p>Backend propio es viable.</p>
+<h2>Orden De Investigación Recomendado</h2>
+<p>Analizar TrayPreferences completo.</p>
+<p>Analizar Text.</p>
+<p>Analizar v3Skins.</p>
+<p>Analizar Android/data/com.tcn.vending.</p>
+<p>Descargar update.xml.</p>
+<p>Investigar FTP.</p>
+<p>Capturar TCP.</p>
+<p>Documentar API EasyCoin.</p>
+<p>Probar liberación remota.</p>
+<p>Diseñar dashboard BallBox.</p>
+<h2>Conclusión General De La Parte 6</h2></div>
+</body></html>
