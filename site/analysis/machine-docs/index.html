@@ -11,15 +11,24 @@ ul{margin-top:8px}
 .doc-body p{margin:0 0 0.85rem 0}
 .doc-body h2{margin-top:2rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+
+nav.top{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+nav.top a{font-weight:600}
+.breadcrumbs{font-size:14px;color:#666;margin:6px 0 18px}
+.breadcrumbs a{color:#666;text-decoration:none}
+.breadcrumbs span{margin:0 6px}
+.section-list li{margin:10px 0}
+.kicker{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+
 </style></head><body>
-<nav><a href="../index.html">inicio</a><a href="../coordination.html">coordinacion</a></nav><hr>
-<h1>Machine docs — static HTML</h1>
+<nav class="top"><a href="../index.html">inicio</a><a href="../coordination.html">coordinación</a><a href="index.html">machine docs</a><a href="../capabilities.html">ourvend map</a></nav><div class="breadcrumbs"><a href="../index.html">Analysis</a><span>›</span><a href="../coordination.html">Coordinación</a><span>›</span><a href="index.html">Machine docs</a></div><hr>
+<div class="kicker">Machine docs</div><h1>Machine docs — static HTML</h1>
 <p class="muted">Conversión local de los DOCX recibidos el 2026-05-26.</p>
-<div class="card"><h2>Consolidados nuevos</h2><ul>
+<div class="card"><h2>Consolidados nuevos</h2><p class="muted">Entrada recomendada primero: verdad comprobada. Después signal del manual. Las partes fuente quedan abajo.</p><ul class="section-list">
 <li><a href="verified-truth.html">Verdad comprobada — consolidado nuevo</a></li>
 <li><a href="manual-signal.html">Signal del manual oficial — doc nuevo</a></li>
 </ul></div>
-<div class="card"><h2>Partes fuente</h2><ul>
+<div class="card"><h2>Partes fuente</h2><p class="muted">Documentos convertidos desde DOCX. Útiles como evidencia primaria.</p><ul class="section-list">
 <li><a href="parte-1-documentacion-maestra-de-investigacion-y-operacion.html">PARTE 1 - DOCUMENTACION MAESTRA DE INVESTIGACION Y OPERACION</a></li>
 <li><a href="parte-2-android-usb-publicidad-exportaciones-y-sistema-interno.html">PARTE 2 - Android USB Publicidad Exportaciones y Sistema Interno</a></li>
 <li><a href="parte-3-easycoin-billwallet-operacion-comercial-y-arquitectura-futura.html">PARTE 3 - EasyCoin BillWallet Operacion Comercial y Arquitectura Futura</a></li>
