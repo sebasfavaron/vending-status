@@ -1,0 +1,353 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PARTE 2 - Android USB Publicidad Exportaciones y Sistema Interno</title><style>
+body{font:16px/1.6 system-ui,-apple-system,sans-serif;max-width:1040px;margin:36px auto;padding:0 18px;color:#111;background:#fff}
+nav a{margin-right:12px}
+.muted{color:#555}
+.card{border:1px solid #ddd;border-radius:10px;padding:16px 18px;margin:18px 0;background:#fafafa}
+code{background:#f3f3f3;padding:1px 4px;border-radius:4px}
+pre{background:#f6f8fa;padding:14px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+h1,h2,h3{margin-top:28px}
+ul{margin-top:8px}
+.small{font-size:13px}
+.doc-body p{margin:0 0 0.85rem 0}
+.doc-body h2{margin-top:2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+
+nav.top{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+nav.top a{font-weight:600}
+.breadcrumbs{font-size:14px;color:#666;margin:6px 0 18px}
+.breadcrumbs a{color:#666;text-decoration:none}
+.breadcrumbs span{margin:0 6px}
+.section-list li{margin:10px 0}
+.kicker{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+
+</style></head><body>
+<nav class="top"><a href="../index.html">inicio</a><a href="../coordination.html">coordinación</a><a href="index.html">machine docs</a><a href="../capabilities.html">ourvend map</a></nav><div class="breadcrumbs"><a href="../index.html">Analysis</a><span>›</span><a href="../coordination.html">Coordinación</a><span>›</span><a href="index.html">Machine docs</a><span>›</span><a href="parte-2-android-usb-publicidad-exportaciones-y-sistema-interno.html">Parte fuente</a></div><hr>
+<div class="kicker">Machine docs / parte fuente</div><div class="kicker">Machine / source</div><h1>PARTE 2 - Android USB Publicidad Exportaciones y Sistema Interno</h1>
+<p class="muted">Conversión estática desde DOCX. Fuente: <code>/home/sebas/work/projects/ballbox/docs/tcn-maquinas-recibido-2026-05-26/PARTE 2 - Android USB Publicidad Exportaciones y Sistema Interno.docx</code></p>
+<div class="doc-body"><h2>Ballbox</h2>
+<h2>Documentación Maestra De Investigación Y Operación</h2>
+<h2>Parte 2</h2>
+<p>Android, USB, Publicidad, Exportaciones y Sistema Interno</p>
+<h2>Investigación Del Sistema Android</h2>
+<p>Uno de los descubrimientos más importantes fue comprobar que la máquina no es simplemente una vending tradicional.</p>
+<p>La máquina contiene una computadora Android completa.</p>
+<p>Esto cambia completamente el enfoque de la investigación.</p>
+<p>Inicialmente se pensaba que la máquina era:</p>
+<p>Pantalla+Controladora+Motores</p>
+<p>Sin embargo se comprobó que existe:</p>
+<p>Android</p>
+<p>con:</p>
+<p>almacenamiento interno</p>
+<p>sistema operativo</p>
+<p>aplicaciones</p>
+<p>configuración propia</p>
+<p>explorador de archivos</p>
+<p>sistema de actualización</p>
+<h2>Acceso Al Sistema</h2>
+<p>Se logró acceder a:</p>
+<p>Android Settings</p>
+<p>Configuración estándar Android.</p>
+<p>Desde allí es posible:</p>
+<p>revisar WiFi</p>
+<p>revisar almacenamiento</p>
+<p>revisar aplicaciones</p>
+<p>revisar configuración del sistema</p>
+<p>ES Browser</p>
+<p>Se confirmó existencia de explorador de archivos.</p>
+<p>Esto permite navegar:</p>
+<p>memoria interna</p>
+<p>carpetas exportadas</p>
+<p>archivos de publicidad</p>
+<p>Menú técnico</p>
+<p>También denominado backstage.</p>
+<p>Permite:</p>
+<p>configuración de máquina</p>
+<p>configuración de motores</p>
+<p>configuración de slots</p>
+<p>publicidad</p>
+<p>exportaciones</p>
+<p>diagnóstico</p>
+<h2>Advertencia Importante</h2>
+<p>Se encontró pantalla con advertencia:</p>
+<p>Please do not change the parameters here, or the machine will not work properly.</p>
+<p>Conclusión:</p>
+<p>No modificar parámetros desconocidos.</p>
+<p>Especialmente:</p>
+<p>seriales</p>
+<p>puertos</p>
+<p>board type</p>
+<p>configuraciones de servidor</p>
+<p>sin respaldo previo.</p>
+<h2>Investigación Del Usb</h2>
+<p>Uno de los objetivos era determinar:</p>
+<p>dónde conectar el USB</p>
+<p>cómo importar contenido</p>
+<p>cómo exportar configuraciones</p>
+<h2>Problema Inicial</h2>
+<p>Existían múltiples puertos USB.</p>
+<p>No estaba claro cuál utilizaba la máquina.</p>
+<p>Se observaron:</p>
+<p>USB superior</p>
+<p>USB inferior</p>
+<h2>Descubrimiento</h2>
+<p>El puerto funcional para importaciones resultó ser:</p>
+<p>USB inferior</p>
+<h2>Formato Del Pendrive</h2>
+<p>Recomendado:</p>
+<h2>Fat32</h2>
+<p>En Mac:</p>
+<h2>Ms-Dos (Fat)</h2>
+<h2>Estructura Necesaria</h2>
+<p>La máquina espera:</p>
+<p>TCNFolder</p>
+<p>en la raíz.</p>
+<p>No es necesario renombrar el pendrive.</p>
+<p>Debe existir:</p>
+<p>TCNFolder/</p>
+<h2>Primera Importación Exitosa</h2>
+<p>Al conectar el USB apareció mensaje en chino.</p>
+<p>Texto observado:</p>
+<p>是否拷贝TcnFolder文件夹内容？</p>
+<p>Traducción aproximada:</p>
+<p>¿Desea copiar el contenido de TcnFolder?</p>
+<p>Botones:</p>
+<p>Cancelar</p>
+<p>Copiar</p>
+<p>Se eligió:</p>
+<p>Copiar</p>
+<h2>Resultado</h2>
+<p>No apareció mensaje de éxito.</p>
+<p>Sin embargo:</p>
+<p>después del reinicio</p>
+<p>el contenido visual cambió.</p>
+<p>Conclusión:</p>
+<p>la importación fue exitosa.</p>
+<h2>Comportamiento Detectado</h2>
+<p>La máquina NO utiliza el USB permanentemente.</p>
+<p>Realiza:</p>
+<h2>Usb</h2>
+<p>↓</p>
+<p>Copiar</p>
+<p>↓</p>
+<p>Memoria interna Android</p>
+<p>↓</p>
+<p>Funcionamiento normal</p>
+<h2>Descubrimiento Crítico</h2>
+<p>Apareció carpeta:</p>
+<p>sdcard/TcnFolder</p>
+<p>Esto confirma:</p>
+<p>los recursos son almacenados localmente.</p>
+<h2>Implicancia</h2>
+<p>Posiblemente sea viable en el futuro:</p>
+<p>descargar contenido vía internet</p>
+<p>y escribir directamente en:</p>
+<p>sdcard/TcnFolder</p>
+<p>sin utilizar pendrive.</p>
+<h2>Publicidad</h2>
+<p>La investigación de publicidad fue uno de los mayores avances.</p>
+<h2>Primera Prueba</h2>
+<p>Se colocó:</p>
+<p>una imagen distinta en cada carpeta</p>
+<p>y un video MP4</p>
+<p>para identificar qué función cumple cada carpeta.</p>
+<h2>Resultado</h2>
+<p>Tras importar y reiniciar:</p>
+<p>aparecieron cambios visuales.</p>
+<p>Además:</p>
+<p>el video del caballo comenzó a reproducirse.</p>
+<h2>Conclusión</h2>
+<p>Las carpetas sí son utilizadas por el sistema.</p>
+<h2>Carpetas Observadas</h2>
+<p>ImageBackground</p>
+<p>ImageGoods</p>
+<p>ImagePayAdvert</p>
+<p>ImageRight</p>
+<p>ImageScreen</p>
+<p>VideoAndImageAd</p>
+<p>VideoAndImageRemote</p>
+<p>Text</p>
+<p>pollFile</p>
+<p>v3Skins</p>
+<h2>Hipótesis Por Carpeta</h2>
+<p>ImageScreen</p>
+<p>Hipótesis muy fuerte:</p>
+<p>controla pantalla en reposo.</p>
+<p>Motivo:</p>
+<p>el video fue reproducido desde allí.</p>
+<p>Estado:</p>
+<p>casi confirmado.</p>
+<p>ImageBackground</p>
+<p>Posible fondo principal.</p>
+<p>Estado:</p>
+<p>pendiente validar.</p>
+<p>ImageRight</p>
+<p>Posible imagen lateral o superior derecha.</p>
+<p>Estado:</p>
+<p>pendiente validar.</p>
+<p>ImagePayAdvert</p>
+<p>Posible publicidad mostrada durante flujo de pago.</p>
+<p>Estado:</p>
+<p>pendiente validar.</p>
+<p>VideoAndImageAd</p>
+<p>Posible publicidad secundaria.</p>
+<p>Estado:</p>
+<p>pendiente validar.</p>
+<p>VideoAndImageRemote</p>
+<p>Posible publicidad descargada desde servidor.</p>
+<p>Estado:</p>
+<p>pendiente validar.</p>
+<p>ImageGoods</p>
+<p>Hipótesis:</p>
+<p>imágenes de productos.</p>
+<p>Muy importante.</p>
+<p>Si es cierto:</p>
+<p>se podrían mostrar:</p>
+<p>Wilson</p>
+<p>Bullpadel</p>
+<p>Nox</p>
+<p>etc.</p>
+<p>sin depender de aprobación visual OurVend.</p>
+<p>Estado:</p>
+<p>sin validar.</p>
+<p>Text</p>
+<p>Hipótesis:</p>
+<p>traducciones</p>
+<p>textos de interfaz</p>
+<p>mensajes</p>
+<p>Estado:</p>
+<p>sin validar.</p>
+<p>v3Skins</p>
+<p>Hipótesis:</p>
+<p>skins</p>
+<p>temas</p>
+<p>branding</p>
+<p>logos</p>
+<p>Estado:</p>
+<p>sin validar.</p>
+<h2>Configuración De Publicidad</h2>
+<p>Se localizaron parámetros.</p>
+<p>Entre ellos:</p>
+<p>StandbyImageFullScreen</p>
+<p>StandbyImageTime</p>
+<p>ImagePlayIntervalTime</p>
+<p>AdvertOnScreenBottom</p>
+<h2>Valores Observados</h2>
+<p>StandbyImageFullScreen = true</p>
+<p>StandbyImageTime = 60</p>
+<p>ImagePlayIntervalTime = 10</p>
+<p>AdvertOnScreenBottom = false</p>
+<h2>Interpretación</h2>
+<p>Pantalla completa:</p>
+<p>activada</p>
+<p>Tiempo antes de iniciar publicidad:</p>
+<p>60 segundos</p>
+<p>Intervalo:</p>
+<p>10 segundos</p>
+<p>Publicidad inferior:</p>
+<p>desactivada</p>
+<h2>Ads Position</h2>
+<p>Parámetro observado.</p>
+<p>No se determinó todavía.</p>
+<p>Hipótesis:</p>
+<p>posición de layout.</p>
+<p>Pendiente investigar.</p>
+<h2>Exportación De Configuración</h2>
+<p>Se ejecutó:</p>
+<p>Export Program Config</p>
+<h2>Resultado</h2>
+<p>Aparecieron:</p>
+<p>YSConfig</p>
+<p>TcnLog</p>
+<p>Android</p>
+<p>TCNFolder</p>
+<h2>Investigación De Ysconfig</h2>
+<p>Archivo principal:</p>
+<p>tray.db</p>
+<h2>Formato</h2>
+<p>SQLite</p>
+<h2>Apertura</h2>
+<p>Se utilizó:</p>
+<p>DB Browser for SQLite</p>
+<h2>Tablas Detectadas</h2>
+<p>TrayInternal</p>
+<p>TrayPreferences</p>
+<p>android_metadata</p>
+<h2>Primera Conclusión Incorrecta</h2>
+<p>Inicialmente parecía una base poco relevante.</p>
+<p>Sin embargo:</p>
+<p>TrayPreferences resultó extremadamente valiosa.</p>
+<h2>Hallazgos Importantes En Traypreferences</h2>
+<p>Servidor:</p>
+<p>qrc.ourvend.com</p>
+<p>Puerto:</p>
+<p>4150</p>
+<p>Machine ID:</p>
+<p>2601070188</p>
+<p>Idioma:</p>
+<p>en</p>
+<p>Idioma WM:</p>
+<p>español</p>
+<h2>Hallazgo Muy Importante</h2>
+<p>is_use_language_package = true</p>
+<h2>Interpretación</h2>
+<p>El software soporta paquetes de idioma externos.</p>
+<h2>Consecuencia</h2>
+<p>La traducción completa al español probablemente es posible.</p>
+<h2>Hallazgo De Publicidad Remota</h2>
+<p>AdvertRemote = false</p>
+<p>RemoteAdSysType = plataforma incorporada</p>
+<h2>Interpretación</h2>
+<p>Existe sistema remoto de publicidad.</p>
+<p>Actualmente desactivado.</p>
+<h2>Hallazgo De Ftp</h2>
+<p>Servidor:</p>
+<p>ad.ourvend.com</p>
+<p>Usuario:</p>
+<p>ysftp</p>
+<p>Contraseña observada en configuración exportada.</p>
+<h2>Interpretación</h2>
+<p>OurVend posee infraestructura para distribución de contenido.</p>
+<h2>Hallazgo De Actualizaciones</h2>
+<p>URL observada:</p>
+<p>tfs.android.tcnvmms.com</p>
+<p>update.xml</p>
+<h2>Interpretación</h2>
+<p>El sistema soporta actualizaciones remotas.</p>
+<h2>Logs</h2>
+<p>Se exportaron múltiples logs.</p>
+<h2>Sorpresa</h2>
+<p>Apareció:</p>
+<p>2013</p>
+<h2>Primera Preocupación</h2>
+<p>Parecía indicar fecha imposible.</p>
+<h2>Hipótesis Actual</h2>
+<p>Android arrancó sin hora válida.</p>
+<p>Fecha por defecto.</p>
+<p>Posteriormente sincronizó correctamente.</p>
+<h2>Comunicación Observada</h2>
+<p>Los logs muestran:</p>
+<h2>Tcp</h2>
+<p>Machine ID</p>
+<p>Slots</p>
+<p>Precios</p>
+<p>Stock</p>
+<p>Estado</p>
+<h2>Sku</h2>
+<h2>Conclusión</h2>
+<p>La máquina reporta información operativa al backend.</p>
+<h2>Arquitectura Detectada</h2>
+<p>OurVend</p>
+<p>↓</p>
+<h2>Tcp</h2>
+<p>↓</p>
+<p>Android</p>
+<p>↓</p>
+<p>Mainboard</p>
+<p>↓</p>
+<p>Motores</p>
+<h2>Implicancia Estratégica</h2>
+<p>Ya no estamos solamente aprendiendo a operar una vending.</p>
+<p>Estamos empezando a entender:</p>
+<p>cómo está construida.</p>
+<h2>Fin Parte 2</h2></div>
+<div class="card"><h2>Seguir leyendo</h2><ul class="section-list"><li><a href="index.html">Volver al índice machine docs</a></li><li><a href="verified-truth.html">Verdad comprobada</a></li><li><a href="manual-signal.html">Signal del manual oficial</a></li></ul></div></body></html>
