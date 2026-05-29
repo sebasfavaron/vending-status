@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Próximo paso: acciones</title>
+<style>
+body{font:16px/1.55 system-ui,-apple-system,sans-serif;max-width:980px;margin:36px auto;padding:0 18px;color:#111;background:#fff}
+nav a{margin-right:12px} .muted{color:#555} .card{border:1px solid #ddd;border-radius:10px;padding:16px 18px;margin:18px 0;background:#fafafa}
+code{background:#f3f3f3;padding:1px 4px;border-radius:4px} h1,h2,h3{margin-top:28px} ul,ol{margin-top:8px}
+
+nav.top{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+nav.top a{font-weight:600}
+.breadcrumbs{font-size:14px;color:#666;margin:6px 0 18px}
+.breadcrumbs a{color:#666;text-decoration:none}
+.breadcrumbs span{margin:0 6px}
+.section-list li{margin:10px 0}
+.kicker{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+
+@media (max-width: 640px){body{font-size:20px;line-height:1.76} .card{padding:20px} h1{font-size:36px} h2{font-size:28px} nav.top{gap:10px}}
+</style></head><body><nav class="top"><a href="../index.html">home</a><a href="index.html">ourvend</a><a href="../machine/index.html">machine</a></nav><div class="breadcrumbs"><a href="../index.html">Home</a><span>›</span><a href="index.html">OurVend</a><span>›</span><a href="actions-next-step.html">Page</a></div><hr>
+<div class="kicker"></div><h1>Próximo paso: acciones</h1>
+<p class="muted">Siguiente fase recomendada: pasar de observación a ejecución sobre acciones reales de máquina.</p>
+
+<div class="card">
+<h2>Objetivo</h2>
+<p>Validar qué acciones se pueden disparar fuera de la UI principal y cuáles sirven para una integración útil de Ballbox.</p>
+</div>
+
+<div class="card">
+<h2>Prioridad</h2>
+<ol>
+<li>Screenshot remoto</li>
+<li>CRUD productos</li>
+<li>CRUD publicidad</li>
+</ol>
+</div>
+
+<div class="card">
+<h2>Plan corto</h2>
+<ol>
+<li>Elegir 1 máquina de prueba.</li>
+<li>Capturar tráfico de cada acción en PC y H5.</li>
+<li>Separar endpoints de lectura vs escritura.</li>
+<li>Repetir cada acción 2 o 3 veces para ver tokens, firmas y checks.</li>
+<li>Probar un cliente mínimo para la acción más valiosa.</li>
+</ol>
+</div>
+
+<div class="card">
+<h2>Qué salida esperar</h2>
+<ul>
+<li>Lista de acciones realmente automatizables.</li>
+<li>Riesgo por acción: bajo, medio, alto.</li>
+<li>Primer endpoint usable para PoC.</li>
+<li>Decisión: seguir con integración directa o frenar.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Ya ejecutado</h2>
+<ul>
+<li>Se eligió máquina primaria: <b>2601070188</b>.</li>
+<li>Se definió orden concreto de ejecución.</li>
+<li>Se fijó v1 en screenshot, productos y publicidad.</li>
+<li>Se separó lectura vs escritura.</li>
+<li>Se dejó fuera de fase 1 todo lo demás.</li>
+<li>Ver detalle en <a href="action-plan.html">Plan ejecutado: acciones</a>.</li>
+</ul>
+</div>
+</body></html>

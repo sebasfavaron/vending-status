@@ -1,0 +1,263 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PARTE 3 - EasyCoin BillWallet Operacion Comercial y Arquitectura Futura</title><style>
+body{font:18px/1.72 system-ui,-apple-system,sans-serif;max-width:1040px;margin:36px auto;padding:0 18px;color:#111;background:#fff}
+nav a{margin-right:12px}
+.muted{color:#555}
+.card{border:1px solid #ddd;border-radius:10px;padding:16px 18px;margin:18px 0;background:#fafafa}
+code{background:#f3f3f3;padding:1px 4px;border-radius:4px}
+pre{background:#f6f8fa;padding:14px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+h1,h2,h3{margin-top:28px}
+ul{margin-top:8px}
+.small{font-size:13px}
+.doc-body p{margin:0 0 0.85rem 0}
+.doc-body h2{margin-top:2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+
+nav.top{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+nav.top a{font-weight:600}
+.breadcrumbs{font-size:14px;color:#666;margin:6px 0 18px}
+.breadcrumbs a{color:#666;text-decoration:none}
+.breadcrumbs span{margin:0 6px}
+.section-list li{margin:10px 0}
+.kicker{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+
+@media (max-width: 640px){body{font-size:20px;line-height:1.76} .card{padding:20px} h1{font-size:36px} h2{font-size:28px} nav.top{gap:10px}}
+</style></head><body>
+<nav class="top"><a href="../index.html">inicio</a><a href="../coordination.html">coordinación</a><a href="../capabilities.html">ourvend map</a></nav><div class="breadcrumbs"><a href="../index.html">Analysis</a><span>›</span><a href="../coordination.html">Coordinación</a><span>›</span><a href="index.html">Docs</a><span>›</span><a href="parte-3-easycoin-billwallet-operacion-comercial-y-arquitectura-futura.html">Parte fuente</a></div><hr>
+<div class="kicker">Docs / parte fuente</div><div class="kicker">Machine / source</div><h1>PARTE 3 - EasyCoin BillWallet Operacion Comercial y Arquitectura Futura</h1>
+<p class="muted">Conversión estática desde DOCX. Fuente: <code>/home/sebas/work/projects/ballbox/docs/tcn-maquinas-recibido-2026-05-26/PARTE 3 - EasyCoin BillWallet Operacion Comercial y Arquitectura Futura.docx</code></p>
+<div class="doc-body"><h2>Ballbox</h2>
+<h2>Documentación Maestra De Investigación Y Operación</h2>
+<h2>Parte 3</h2>
+<p>EasyCoin, BillWallet, Operación Comercial y Arquitectura Futura</p>
+<h2>Introducción</h2>
+<p>Una vez validado el funcionamiento mecánico y la conectividad de la máquina, el siguiente objetivo fue validar el flujo real de cobro.</p>
+<p>La empresa utilizada para pagos es:</p>
+<p>EasyCoin</p>
+<p>La gestión de dispositivos y cuentas se realiza mediante:</p>
+<p>BillWallet</p>
+<h2>Instalación Del Dispositivo Easycoin</h2>
+<p>Se recibió un dispositivo EasyCoin.</p>
+<p>La instalación fue realizada junto con personal de la empresa.</p>
+<p>Resultado:</p>
+<p>Instalación exitosa.</p>
+<h2>Prueba De Cobro</h2>
+<p>Se realizaron pruebas reales.</p>
+<p>Resultado observado:</p>
+<p>Usuario selecciona producto.</p>
+<p>Usuario realiza pago.</p>
+<p>EasyCoin recibe confirmación.</p>
+<p>Máquina libera el canal.</p>
+<p>Producto cae correctamente.</p>
+<p>Estado:</p>
+<h2>Confirmado.</h2>
+<h2>Observación Sobre El Balance</h2>
+<p>Durante las pruebas apareció un valor de balance en pantalla.</p>
+<p>Sin embargo:</p>
+<p>No se observó modificación visible del balance cuando ingresó dinero.</p>
+<p>A pesar de ello:</p>
+<p>La máquina liberó correctamente el producto.</p>
+<p>Hipótesis:</p>
+<p>El balance visible pertenece al firmware TCN y no al flujo principal de EasyCoin.</p>
+<p>Pendiente:</p>
+<p>Confirmar con EasyCoin.</p>
+<h2>Billwallet</h2>
+<p>BillWallet es la plataforma de administración utilizada por EasyCoin.</p>
+<p>Cada dispositivo queda asociado a una cuenta BillWallet.</p>
+<p>Importante:</p>
+<p>La asociación se realiza con el usuario.</p>
+<p>NO con el dispositivo.</p>
+<h2>Relación Entre Dispositivos Y Mercadopago</h2>
+<p>Arquitectura observada:</p>
+<p>Dispositivo</p>
+<p>↓</p>
+<p>Usuario BillWallet</p>
+<p>↓</p>
+<p>MercadoPago</p>
+<p>Consecuencia:</p>
+<p>Un usuario puede administrar múltiples dispositivos.</p>
+<p>Todos los dispositivos cobran al mismo MercadoPago.</p>
+<h2>Ejemplo Ballbox</h2>
+<p>Cuenta BallBox</p>
+<p>↓</p>
+<p>Máquina Club A</p>
+<p>Máquina Club B</p>
+<p>Máquina Club C</p>
+<p>Máquina Club D</p>
+<p>↓</p>
+<p>Todos los pagos llegan a la misma cuenta MercadoPago.</p>
+<h2>Ventajas Del Modelo Centralizado</h2>
+<p>BallBox recibe toda la recaudación.</p>
+<p>Ventajas:</p>
+<p>Control total de ventas.</p>
+<p>Control total de stock.</p>
+<p>Conciliación simplificada.</p>
+<p>Pago mensual a clubes.</p>
+<p>Menor riesgo de diferencias de inventario.</p>
+<p>Posibilidad de aprovechar flujo de caja.</p>
+<h2>Desventajas Del Modelo Centralizado</h2>
+<p>Mayor responsabilidad administrativa.</p>
+<p>Mayor responsabilidad financiera.</p>
+<p>Necesidad de conciliación periódica.</p>
+<p>Posibles cuestiones impositivas futuras.</p>
+<h2>Modelo Descentralizado</h2>
+<p>Alternativa:</p>
+<p>Cada club crea su propio usuario BillWallet.</p>
+<p>Cada club conecta su propio MercadoPago.</p>
+<p>Resultado:</p>
+<p>Los fondos llegan directamente al club.</p>
+<h2>Ventajas</h2>
+<p>BallBox no administra dinero ajeno.</p>
+<p>Menor responsabilidad financiera.</p>
+<h2>Desventajas</h2>
+<p>Menor control.</p>
+<p>Menor visibilidad.</p>
+<p>Más difícil verificar ventas.</p>
+<p>Posibilidad de discrepancias de stock.</p>
+<h2>Usuarios Adicionales</h2>
+<p>BillWallet permite agregar usuarios.</p>
+<p>Posible implementación:</p>
+<p>Club:</p>
+<p>Administrador Club</p>
+<p>BallBox:</p>
+<p>Administrador BallBox</p>
+<p>Objetivo:</p>
+<p>Acceder a métricas y monitoreo.</p>
+<p>Pendiente:</p>
+<p>Validar si un administrador puede eliminar a otro usuario.</p>
+<h2>Qr De Pago</h2>
+<p>Cada cuenta BillWallet genera un QR.</p>
+<p>Proceso observado:</p>
+<p>Configurar MercadoPago.</p>
+<p>Generar QR.</p>
+<p>Descargar QR.</p>
+<p>Imprimir QR.</p>
+<p>Colocar QR en la máquina.</p>
+<h2>Observación Importante</h2>
+<p>Si cambia el MercadoPago:</p>
+<p>El QR cambia.</p>
+<p>Por lo tanto:</p>
+<p>Debe reemplazarse el QR físico.</p>
+<h2>Regla Operativa</h2>
+<p>Siempre verificar:</p>
+<p>□ QR actualizado</p>
+<p>□ MercadoPago correcto</p>
+<p>□ Impresión correcta</p>
+<p>□ QR visible para usuarios</p>
+<h2>Api Easycoin</h2>
+<p>Descubrimiento muy importante.</p>
+<p>EasyCoin ofrece API.</p>
+<p>Credenciales disponibles:</p>
+<p>API Key</p>
+<p>API Secret</p>
+<h2>Posibilidades Detectadas</h2>
+<p>La API permitiría:</p>
+<p>Consultar dispositivos.</p>
+<p>Consultar estado.</p>
+<p>Acreditar pagos.</p>
+<p>Liberar productos.</p>
+<p>Obtener eventos.</p>
+<p>Integrar sistemas externos.</p>
+<p>Pendiente:</p>
+<p>Documentación completa.</p>
+<h2>Integración Futura Con Atc</h2>
+<p>Este descubrimiento cambia significativamente el potencial del proyecto.</p>
+<p>Arquitectura posible:</p>
+<h2>Atc</h2>
+<p>↓</p>
+<p>Backend BallBox</p>
+<p>↓</p>
+<p>API EasyCoin</p>
+<p>↓</p>
+<p>Máquina</p>
+<p>↓</p>
+<p>Producto</p>
+<h2>Casos De Uso Posibles</h2>
+<p>Compra desde aplicación</p>
+<p>Usuario compra desde ATC.</p>
+<p>ATC procesa operación.</p>
+<p>EasyCoin recibe autorización.</p>
+<p>Máquina libera producto.</p>
+<p>Beneficios de socios</p>
+<p>Socios premium reciben:</p>
+<p>descuentos</p>
+<p>productos gratis</p>
+<p>promociones</p>
+<p>Canje de puntos</p>
+<p>Puntos ATC</p>
+<p>↓</p>
+<p>Producto físico</p>
+<p>Torneos</p>
+<p>Premios automáticos.</p>
+<p>Packs de bienvenida</p>
+<p>Nuevo socio:</p>
+<p>tubo de pelotas</p>
+<p>grip</p>
+<p>bebida</p>
+<p>Liberados automáticamente.</p>
+<h2>Antenas</h2>
+<p>Tanto la máquina TCN como EasyCoin poseen antenas.</p>
+<p>Actualmente ambas permanecen dentro del gabinete.</p>
+<h2>Riesgo Identificado</h2>
+<p>El gabinete es metálico.</p>
+<p>Posible degradación de señal.</p>
+<h2>Recomendación</h2>
+<p>Ante problemas de comunicación:</p>
+<p>Sacar antena al exterior.</p>
+<p>Repetir pruebas.</p>
+<p>Medir mejora.</p>
+<h2>Procedimiento De Instalación En Club</h2>
+<p>Posicionar máquina.</p>
+<p>Conectar energía.</p>
+<p>Verificar tierra.</p>
+<p>Configurar red.</p>
+<p>Verificar cloud.</p>
+<p>Configurar EasyCoin.</p>
+<p>Configurar MercadoPago.</p>
+<p>Descargar QR.</p>
+<p>Colocar QR.</p>
+<p>Configurar productos.</p>
+<p>Configurar precios.</p>
+<p>Configurar stock.</p>
+<p>Configurar publicidad.</p>
+<p>Probar todos los canales.</p>
+<p>Realizar compra real.</p>
+<p>Confirmar liberación.</p>
+<p>Pegar QR legal detrás.</p>
+<p>Entregar máquina.</p>
+<h2>Hipótesis Estratégica Mayor</h2>
+<p>Actualmente:</p>
+<p>Máquina</p>
+<p>↓</p>
+<p>OurVend</p>
+<p>↓</p>
+<p>EasyCoin</p>
+<p>↓</p>
+<p>BillWallet</p>
+<p>↓</p>
+<p>MercadoPago</p>
+<p>Hipótesis futura:</p>
+<p>Máquina</p>
+<p>↓</p>
+<p>Backend BallBox</p>
+<p>↓</p>
+<p>EasyCoin</p>
+<p>↓</p>
+<h2>Atc</h2>
+<p>↓</p>
+<p>Usuarios</p>
+<p>Objetivo:</p>
+<p>Controlar experiencia completa.</p>
+<p>Sin depender operativamente de OurVend.</p>
+<h2>Próximos Experimentos Prioritarios</h2>
+<p>Analizar Text.</p>
+<p>Analizar ImageGoods.</p>
+<p>Analizar v3Skins.</p>
+<p>Analizar Android/data/com.tcn.vending.</p>
+<p>Obtener documentación API EasyCoin.</p>
+<p>Probar liberación remota.</p>
+<p>Probar acreditación remota.</p>
+<p>Capturar tráfico TCP.</p>
+<p>Comprender autenticación.</p>
+<p>Evaluar backend BallBox propio.</p>
+<h2>Fin Parte 3</h2></div>
+<div class="card"><h2>Seguir leyendo</h2><ul class="section-list"><li><a href="index.html">Volver al índice docs</a></li><li><a href="verified-truth.html">Verdad comprobada</a></li><li><a href="manual-signal.html">Signal del manual oficial</a></li></ul></div></body></html>

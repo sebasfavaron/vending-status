@@ -1,0 +1,259 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PARTE 1 - DOCUMENTACION MAESTRA DE INVESTIGACION Y OPERACION</title><style>
+body{font:18px/1.72 system-ui,-apple-system,sans-serif;max-width:1040px;margin:36px auto;padding:0 18px;color:#111;background:#fff}
+nav a{margin-right:12px}
+.muted{color:#555}
+.card{border:1px solid #ddd;border-radius:10px;padding:16px 18px;margin:18px 0;background:#fafafa}
+code{background:#f3f3f3;padding:1px 4px;border-radius:4px}
+pre{background:#f6f8fa;padding:14px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+h1,h2,h3{margin-top:28px}
+ul{margin-top:8px}
+.small{font-size:13px}
+.doc-body p{margin:0 0 0.85rem 0}
+.doc-body h2{margin-top:2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+
+nav.top{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+nav.top a{font-weight:600}
+.breadcrumbs{font-size:14px;color:#666;margin:6px 0 18px}
+.breadcrumbs a{color:#666;text-decoration:none}
+.breadcrumbs span{margin:0 6px}
+.section-list li{margin:10px 0}
+.kicker{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+
+@media (max-width: 640px){body{font-size:20px;line-height:1.76} .card{padding:20px} h1{font-size:36px} h2{font-size:28px} nav.top{gap:10px}}
+</style></head><body>
+<nav class="top"><a href="../index.html">inicio</a><a href="../coordination.html">coordinación</a><a href="../capabilities.html">ourvend map</a></nav><div class="breadcrumbs"><a href="../index.html">Analysis</a><span>›</span><a href="../coordination.html">Coordinación</a><span>›</span><a href="index.html">Docs</a><span>›</span><a href="parte-1-documentacion-maestra-de-investigacion-y-operacion.html">Parte fuente</a></div><hr>
+<div class="kicker">Docs / parte fuente</div><div class="kicker">Machine / source</div><h1>PARTE 1 - DOCUMENTACION MAESTRA DE INVESTIGACION Y OPERACION</h1>
+<p class="muted">Conversión estática desde DOCX. Fuente: <code>/home/sebas/work/projects/ballbox/docs/tcn-maquinas-recibido-2026-05-26/PARTE 1 - DOCUMENTACION MAESTRA DE INVESTIGACION Y OPERACION.docx</code></p>
+<div class="doc-body"><h2>Ballbox</h2>
+<h2>Documentación Maestra De Investigación Y Operación</h2>
+<p>Máquinas Expendedoras TCN / OurVend</p>
+<p>Versión 1.0 (Bitácora completa)</p>
+<h2>Propósito Del Documento</h2>
+<p>Este documento existe para evitar perder conocimiento.</p>
+<p>La idea NO es generar un resumen ejecutivo.</p>
+<p>La idea es que cualquier integrante de BallBox pueda tomar este documento dentro de seis meses o dos años y continuar exactamente desde el punto donde quedó la investigación.</p>
+<p>Por ese motivo se documentan:</p>
+<p>Hallazgos confirmados.</p>
+<p>Errores encontrados.</p>
+<p>Pruebas realizadas.</p>
+<p>Hipótesis.</p>
+<p>Configuraciones.</p>
+<p>Procedimientos.</p>
+<p>Dudas pendientes.</p>
+<p>Decisiones tomadas.</p>
+<p>Incluso si una hipótesis resulta incorrecta, se documenta porque evita repetir experimentos.</p>
+<h2>Estado Del Proyecto Al Momento De Escribir Este Documento</h2>
+<p>La investigación comenzó sobre máquinas expendedoras TCN provenientes de China.</p>
+<p>Objetivos iniciales:</p>
+<p>Comprender funcionamiento interno.</p>
+<p>Comprender configuración de software.</p>
+<p>Conectar internet.</p>
+<p>Configurar productos.</p>
+<p>Configurar imágenes.</p>
+<p>Configurar publicidad.</p>
+<p>Configurar idiomas.</p>
+<p>Integrar medios de pago.</p>
+<p>Evaluar independencia futura respecto de OurVend.</p>
+<p>Al comenzar la investigación prácticamente no existía conocimiento operativo sobre la plataforma.</p>
+<p>Actualmente:</p>
+<h2>Confirmado:</h2>
+<p>Conexión WiFi.</p>
+<p>Acceso Android.</p>
+<p>Acceso backstage.</p>
+<p>Configuración de slots.</p>
+<p>Prueba de motores.</p>
+<p>Prueba de expulsión.</p>
+<p>Conexión OurVend.</p>
+<p>Modificación remota de stock.</p>
+<p>Modificación remota de precios.</p>
+<p>Importación USB.</p>
+<p>Publicidad por imágenes.</p>
+<p>Publicidad por video.</p>
+<p>Exportación de configuración.</p>
+<p>Exportación de logs.</p>
+<p>Exportación de base SQLite.</p>
+<p>Integración EasyCoin.</p>
+<p>Integración BillWallet.</p>
+<p>Cobro real con liberación de producto.</p>
+<h2>Pendiente:</h2>
+<p>Traducción completa.</p>
+<p>Comprensión completa de ImageGoods.</p>
+<p>Comprensión completa de Text.</p>
+<p>Comprensión completa de v3Skins.</p>
+<p>Publicidad remota online.</p>
+<p>Comprensión protocolo TCP.</p>
+<p>Posible backend propio.</p>
+<h2>Identificación De La Máquina</h2>
+<p>Modelo observado:</p>
+<h2>Tcn-Csc-8C(V49)</h2>
+<p>Machine ID observado:</p>
+<p>2601070188</p>
+<p>Resolución:</p>
+<p>1920x1080</p>
+<p>Orientación:</p>
+<p>Vertical</p>
+<p>Main Board:</p>
+<h2>Tcn-Standjs</h2>
+<p>Puerto serie principal:</p>
+<p>/dev/ttyS2</p>
+<p>Baud rate:</p>
+<p>9600</p>
+<p>Servidor configurado:</p>
+<p>qrc.ourvend.com</p>
+<p>Puerto configurado:</p>
+<p>4150</p>
+<p>Aplicación Android observada:</p>
+<h2>Tcn-Sd-05-V1.0.0.13-20251210.01</h2>
+<p>Android:</p>
+<p>Rockchip K518 Android 7.1.2</p>
+<p>Memoria observada:</p>
+<h2>1.95 Gb Ram</h2>
+<p>Almacenamiento:</p>
+<h2>7.28 Gb</h2>
+<h2>Arquitectura General Detectada</h2>
+<p>Luego de múltiples pruebas se concluye que la arquitectura parece dividirse en tres componentes:</p>
+<p>OurVend</p>
+<p>Responsable de:</p>
+<p>nube</p>
+<p>stock</p>
+<p>precios</p>
+<p>sincronización</p>
+<p>monitoreo</p>
+<p>Android</p>
+<p>Responsable de:</p>
+<p>interfaz gráfica</p>
+<p>publicidad</p>
+<p>multimedia</p>
+<p>idioma</p>
+<p>sincronización con servidor</p>
+<p>Main Board</p>
+<p>Responsable de:</p>
+<p>motores</p>
+<p>sensores</p>
+<p>bandejas</p>
+<p>dispensado</p>
+<p>Esquema simplificado:</p>
+<p>OurVend Cloud</p>
+<p>↓</p>
+<p>Android TCN</p>
+<p>↓</p>
+<p>Main Board</p>
+<p>↓</p>
+<p>Motores</p>
+<p>↓</p>
+<p>Producto</p>
+<h2>Investigación De Red</h2>
+<p>Primer problema encontrado</p>
+<p>La máquina no detectaba:</p>
+<p>WiFi local</p>
+<p>hotspot</p>
+<p>Inicialmente se creyó que:</p>
+<p>la antena estaba fallando</p>
+<p>era obligatorio usar SIM</p>
+<p>Descubrimiento</p>
+<p>Se activó:</p>
+<p>Maximizar compatibilidad</p>
+<p>en iPhone.</p>
+<p>Inmediatamente apareció el hotspot.</p>
+<p>Conclusión:</p>
+<p>La máquina posee restricciones de compatibilidad WiFi.</p>
+<p>Hipótesis</p>
+<p>Posiblemente:</p>
+<p>sólo 2.4GHz</p>
+<p>problemas con algunos canales automáticos</p>
+<p>problemas con configuraciones modernas</p>
+<p>Recomendación BallBox</p>
+<p>Si una máquina no detecta red:</p>
+<p>probar hotspot</p>
+<p>activar maximizar compatibilidad</p>
+<p>usar WPA2</p>
+<p>usar canal 1</p>
+<p>usar canal 6</p>
+<p>antes de asumir fallas.</p>
+<h2>Investigación De Antenas</h2>
+<p>La máquina posee antena.</p>
+<p>EasyCoin posee antena independiente.</p>
+<p>Ambos dispositivos se encuentran dentro de estructura metálica.</p>
+<p>Hipótesis:</p>
+<p>La estructura puede degradar señal.</p>
+<p>Posible solución:</p>
+<p>sacar antenas al exterior.</p>
+<p>Debe probarse en instalaciones reales.</p>
+<p>Agregar al checklist:</p>
+<p>□ evaluar señal</p>
+<p>□ evaluar antena externa</p>
+<h2>Investigación De Slots</h2>
+<p>Primer hallazgo importante:</p>
+<p>Slot Management funciona correctamente.</p>
+<p>Se pudieron:</p>
+<p>probar motores</p>
+<p>probar canales</p>
+<p>expulsar productos</p>
+<p>Regla BallBox</p>
+<p>Nunca asumir que todos los canales funcionan.</p>
+<p>Cada canal debe probarse.</p>
+<p>Checklist:</p>
+<p>□ Canal 1</p>
+<p>□ Canal 2</p>
+<p>□ Canal 3</p>
+<p>...</p>
+<p>hasta validar todos.</p>
+<h2>Carga De Productos</h2>
+<p>Tubos de pelotas</p>
+<p>Problema encontrado:</p>
+<p>si quedan libres en el centro pueden:</p>
+<p>girar</p>
+<p>rotar</p>
+<p>bloquear siguiente tubo</p>
+<p>Configuración recomendada</p>
+<p>Canal doble.</p>
+<p>Apoyados contra pared lateral.</p>
+<p>Resultado:</p>
+<p>Menor probabilidad de atasco.</p>
+<p>Productos textiles</p>
+<p>Ejemplos:</p>
+<p>medias</p>
+<p>grips</p>
+<p>bandas</p>
+<p>Problema:</p>
+<p>pueden deslizarse debajo del espiral.</p>
+<p>Si ocurre:</p>
+<p>el espiral gira</p>
+<p>pero el producto no cae.</p>
+<p>Configuración recomendada</p>
+<p>Doblar y acomodar.</p>
+<p>Verificar físicamente.</p>
+<p>Probar múltiples veces.</p>
+<p>Nunca asumir.</p>
+<h2>Qr Legal</h2>
+<p>Existe QR provisto por despachante.</p>
+<p>Debe pegarse:</p>
+<p>detrás de la heladera.</p>
+<p>Agregar al checklist obligatorio.</p>
+<p>No entregar máquina sin QR colocado.</p>
+<h2>Ourvend</h2>
+<p>URLs observadas:</p>
+<h2>Pc:</h2>
+<p>https://os.ourvend.com/Account/Login</p>
+<h2>H5:</h2>
+<p>https://oshw.ourvend.com/Account/HLogin</p>
+<h2>Funciones Confirmadas En Ourvend</h2>
+<p>Se confirmó:</p>
+<p>modificación remota de stock</p>
+<p>modificación remota de precio</p>
+<p>sincronización con máquina</p>
+<h2>Productos</h2>
+<p>Proceso observado:</p>
+<p>crear proveedor</p>
+<p>crear categoría</p>
+<p>crear producto</p>
+<p>Problema encontrado:</p>
+<p>la plataforma informa aprobación manual.</p>
+<p>Tiempo indicado:</p>
+<p>1-2 días hábiles.</p>
+<p>Hipótesis:</p>
+<p>las imágenes locales de la máquina podrían no depender completamente de esa aprobación.</p>
+<p>Pendiente investigar.</p>
+<h2>Fin Parte 1</h2></div>
+<div class="card"><h2>Seguir leyendo</h2><ul class="section-list"><li><a href="index.html">Volver al índice docs</a></li><li><a href="verified-truth.html">Verdad comprobada</a></li><li><a href="manual-signal.html">Signal del manual oficial</a></li></ul></div></body></html>

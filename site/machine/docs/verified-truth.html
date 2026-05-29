@@ -1,0 +1,167 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Verdad comprobada</title><style>
+body{font:18px/1.72 system-ui,-apple-system,sans-serif;max-width:1040px;margin:36px auto;padding:0 18px;color:#111;background:#fff}
+nav a{margin-right:12px}.muted{color:#555}.card{border:1px solid #ddd;border-radius:10px;padding:16px 18px;margin:18px 0;background:#fafafa}
+code{background:#f3f3f3;padding:1px 4px;border-radius:4px}h1,h2,h3{margin-top:28px}ul{margin-top:8px}li{margin:6px 0}.small{font-size:13px}
+
+nav.top{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+nav.top a{font-weight:600}
+.breadcrumbs{font-size:14px;color:#666;margin:6px 0 18px}
+.breadcrumbs a{color:#666;text-decoration:none}
+.breadcrumbs span{margin:0 6px}
+.section-list li{margin:10px 0}
+.kicker{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+
+@media (max-width: 640px){body{font-size:20px;line-height:1.76} .card{padding:20px} h1{font-size:36px} h2{font-size:28px} nav.top{gap:10px}}
+</style></head><body>
+<nav class="top"><a href="../index.html">inicio</a><a href="../coordination.html">coordinación</a><a href="../capabilities.html">ourvend map</a></nav><div class="breadcrumbs"><a href="../index.html">Analysis</a><span>›</span><a href="../coordination.html">Coordinación</a><span>›</span><a href="index.html">Docs</a><span>›</span><a href="verified-truth.html">Verdad comprobada</a></div><hr>
+<div class="kicker">Docs / consolidado</div><div class="kicker">Machine / consolidado</div><h1>Verdad comprobada</h1>
+<p class="muted">Consolidado  hecho desde las partes 1–6. Acá queda sólo lo confirmado. Hipótesis, dudas y líneas de investigación quedaron afuera.</p>
+
+<div class="card">
+<h2>Alcance</h2>
+<ul>
+<li>Fuente: partes 1–6 de la documentación TCN / OurVend.</li>
+<li>Criterio: incluir sólo hechos marcados o descritos como confirmados/observados/probados.</li>
+<li>Excluir: hipótesis, interpretación no validada, preguntas abiertas y futuros posibles.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Estado general confirmado</h2>
+<ul>
+<li>La máquina TCN quedó operativa a nivel mecánico y de conectividad básica.</li>
+<li>Se confirmaron: conexión WiFi, acceso Android, acceso backstage, configuración de slots, prueba de motores, prueba de expulsión, conexión OurVend, modificación remota de stock, modificación remota de precios, importación USB, publicidad por imágenes, publicidad por video, exportación de configuración, exportación de logs y exportación de base SQLite.</li>
+<li>Se confirmó integración operativa con EasyCoin.</li>
+<li>Se confirmó integración operativa con BillWallet.</li>
+<li>Se confirmó cobro real con liberación correcta de producto.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Arquitectura técnica confirmada</h2>
+<ul>
+<li>Modelo observado: <code>TCN-D720-10C(22SP)</code>.</li>
+<li>Orientación: vertical.</li>
+<li>Main board observada: <code>TCN-STANDJS</code>.</li>
+<li>Puerto serie principal observado: <code>/dev/ttyS2</code>.</li>
+<li>Baud rate observado: <code>9600</code>.</li>
+<li>Servidor configurado observado: <code>qrc.ourvend.com</code>.</li>
+<li>Puerto configurado observado: <code>4150</code>.</li>
+<li>Aplicación Android observada: <code>TCN-SD-05-V1.0.0.13-20251210.01</code>.</li>
+<li>Android observado: Rockchip K518, Android 7.1.2.</li>
+<li>Memoria observada: 1.95 GB RAM.</li>
+<li>Almacenamiento observado: 7.28 GB.</li>
+<li>Machine ID observado en configuración: <code>2601070188</code>.</li>
+</ul>
+<p>Arquitectura confirmada al nivel operativo observado:</p>
+<ul>
+<li>OurVend cumple rol de nube para stock, precios, sincronización y monitoreo.</li>
+<li>Android cumple rol de interfaz gráfica, publicidad multimedia, idioma y sincronización con servidor.</li>
+<li>Main board cumple rol de control de motores, sensores, bandejas y dispensado.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Cloud / OurVend confirmado</h2>
+<ul>
+<li>Se observaron URLs de acceso OurVend:</li>
+<li><code>https://os.ourvend.com/Account/Login</code></li>
+<li><code>https://oshw.ourvend.com/Account/HLogin</code></li>
+<li>Desde OurVend se confirmó modificación remota de stock.</li>
+<li>Desde OurVend se confirmó modificación remota de precio.</li>
+<li>Se confirmó sincronización con la máquina.</li>
+<li>Se confirmó que la máquina reporta información operativa al backend, incluyendo al menos Machine ID, slots, precios, stock, estado y SKU.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Publicidad / exportaciones / sistema interno confirmado</h2>
+<ul>
+<li>Se confirmó publicidad local por imágenes.</li>
+<li>Se confirmó publicidad local por video.</li>
+<li>Se confirmó importación por USB.</li>
+<li>Se confirmó exportación de configuración.</li>
+<li>Se confirmó exportación de logs.</li>
+<li>Se confirmó exportación de base SQLite.</li>
+<li>En <code>TrayPreferences</code> se observaron:</li>
+<li>Servidor: <code>qrc.ourvend.com</code></li>
+<li>Puerto: <code>4150</code></li>
+<li>Machine ID: <code>2601070188</code></li>
+<li>Idioma: <code>en</code></li>
+<li>Idioma WM: <code>español</code></li>
+<li>Se observó <code>is_use_language_package = true</code>.</li>
+<li>Se observó <code>AdvertRemote = false</code>.</li>
+<li>Se observó <code>RemoteAdSysType</code> configurado.</li>
+<li>Se observó infraestructura FTP/config relacionada con contenido remoto:</li>
+<li>Host: <code>ad.ourvend.com</code></li>
+<li>Usuario: <code>ysftp</code></li>
+<li>También quedó documentado que existía una contraseña en la configuración exportada, pero ese valor no aparece en este consolidado porque no quedó expuesto aquí como hecho recuperado.</li>
+<li>Se observó URL de actualizaciones: <code>tfs.android.tcnvmms.com</code>.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Operación mecánica y de stock confirmada</h2>
+<ul>
+<li>Slot Management funciona correctamente.</li>
+<li>Se pudieron probar motores.</li>
+<li>Se pudieron probar canales.</li>
+<li>Se pudo validar expulsión/liberación de producto.</li>
+<li>La operación de stock puede ajustarse desde cloud y verificarse contra stock real.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Pagos confirmados</h2>
+<ul>
+<li>La empresa usada para pagos es EasyCoin.</li>
+<li>La gestión de dispositivos y cuentas se realiza mediante BillWallet.</li>
+<li>Se recibió e instaló un dispositivo EasyCoin con personal de la empresa.</li>
+<li>Resultado de instalación: exitosa.</li>
+<li>Flujo de compra real confirmado:</li>
+<li>usuario selecciona producto</li>
+<li>usuario realiza pago</li>
+<li>EasyCoin recibe confirmación</li>
+<li>la máquina libera el canal</li>
+<li>el producto cae correctamente</li>
+<li>BillWallet administra la asociación del dispositivo con una cuenta de usuario.</li>
+<li>Un usuario BillWallet puede administrar múltiples dispositivos.</li>
+<li>Todos los dispositivos asociados a ese usuario cobran al mismo MercadoPago.</li>
+<li>Cada cuenta BillWallet genera un QR de pago.</li>
+<li>Si cambia MercadoPago, cambia el QR y debe reemplazarse el QR físico.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Checklist operativo confirmado</h2>
+<ul>
+<li>Para validar una máquina operativa se usa al menos este criterio visible:</li>
+<li>máquina visible en OurVend</li>
+<li>comunicación activa</li>
+<li>stock sincronizado</li>
+<li>precios sincronizados</li>
+<li>motores probados</li>
+<li>compra real exitosa</li>
+<li>QR correcto y visible</li>
+<li>QR legal pegado detrás de la heladera</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Qué NO entra en este consolidado</h2>
+<ul>
+<li>Hipótesis sobre ImageGoods, Text, v3Skins, branding, traducciones completas y backend propio.</li>
+<li>Hipótesis sobre control total sin OurVend.</li>
+<li>Hipótesis sobre uso exacto del FTP para ads, idiomas o skins.</li>
+<li>Preguntas abiertas sobre protocolo TCP, autenticación y reemplazo de vendor backend.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Uso recomendado</h2>
+<ul>
+<li>Tomar este documento como base corta de verdad operativa actual.</li>
+<li>Usar las partes 2–6 sólo para investigación adicional, no como fuente única de verdad confirmada.</li>
+</ul>
+</div>
+<div class="card"><h2>Seguir leyendo</h2><ul class="section-list"><li><a href="index.html">Volver al índice docs</a></li><li><a href="verified-truth.html">Verdad comprobada</a></li><li><a href="manual-signal.html">Signal del manual oficial</a></li></ul></div></body></html>
