@@ -6,8 +6,8 @@
   <title>Estado máquinas expendedoras</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: #07111f; color: #fff; }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 40px; }
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 18px; line-height: 1.6; background: #07111f; color: #fff; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 18px 44px; }
     .summary, .overview { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:18px; }
     .card, .machine { background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius: 12px; }
     .card { padding: 14px; }
@@ -38,18 +38,13 @@
       <h2 style="margin:0 0 10px 0">Ballbox</h2>
       <div class="muted" style="margin-bottom:10px">Nuevo árbol semántico principal.</div>
       <ul>
-        <li><a href="./ballbox/index.html">Ballbox hub</a></li>
         <li><a href="./ballbox/ourvend/index.html">OurVend</a></li>
         <li><a href="./ballbox/machine/index.html">Machine</a></li>
-        <li><a href="./ballbox/machine/docs/index.html">Machine docs</a></li>
+        <li><a href="./ballbox/machine/docs/index.html">Docs</a></li>
       </ul>
     </div>
     <div class="machine" style="margin-top:18px">
-      <h2 style="margin:0 0 10px 0">Legacy analysis</h2>
-      <div class="muted" style="margin-bottom:10px">Rutas viejas mantenidas por compatibilidad mientras migramos.</div>
-      <ul>
-        <li><a href="./analysis/index.html">Legacy analysis home</a></li>
-      </ul>
+      
     </div>
     <p class="muted">Repo: <a href="https://github.com/sebasfavaron/vending-status">sebasfavaron/vending-status</a></p>
   </div>
@@ -109,3 +104,5 @@
   </script>
 </body>
 </html>
+
+<style>@media (max-width: 640px){body{font-size:20px} .big{font-size:32px} .card,.machine{padding:18px} dl{grid-template-columns:1fr} }</style>
