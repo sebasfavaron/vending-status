@@ -6,46 +6,54 @@
   <title>Estado máquinas expendedoras</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.6; background: #07111f; color: #fff; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 18px 44px; }
-    .summary, .overview { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:18px; }
-    .card, .machine { background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius: 12px; }
-    .card { padding: 14px; }
-    .label { color: rgba(255,255,255,.65); font-size: 13px; margin-bottom: 6px; }
-    .big { font-size: 28px; font-weight: 700; }
-    .machine { padding: 16px; margin-bottom: 12px; }
+    :root { --bg:#07111f; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --text:#fff; --muted:rgba(255,255,255,.7); --link:#9dd7ff; }
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.6; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px 14px 36px; }
+    h1,h2,h3,p,ul { margin-top: 0; }
+    .summary, .overview, .links { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:18px; }
+    .card, .machine, .navcard { background: var(--panel); border:1px solid var(--line); border-radius: 14px; }
+    .card, .machine { padding: 14px; }
+    .navcard { padding: 16px; text-decoration: none; color: inherit; display:block; }
+    .navcard strong { display:block; font-size: 20px; margin-bottom: 4px; color: var(--link); }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+    .big { font-size: 28px; font-weight: 700; line-height: 1.15; }
+    .machine { margin-bottom: 12px; }
     .row { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .pill { display:inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
     .online { background:#123b26; color:#7ee2a8; }
     .offline { background:#4a1f25; color:#ff9aa8; }
     .unknown { background:#3a3520; color:#ffe390; }
     dl { display:grid; grid-template-columns: 180px 1fr; gap: 8px 12px; margin: 14px 0 0; }
-    dt { color: rgba(255,255,255,.6); }
+    dt { color: var(--muted); }
     dd { margin:0; }
-    .muted { color: rgba(255,255,255,.6); }
+    .muted { color: var(--muted); }
     .error { color: #ff9aa8; }
-    a { color: #9dd7ff; }
+    a { color: var(--link); }
+    @media (max-width: 640px) {
+      body { font-size: 18px; }
+      .wrap { padding: 14px 12px 28px; }
+      .summary, .overview, .links { grid-template-columns: 1fr 1fr; gap:10px; }
+      .card, .machine, .navcard { border-radius: 12px; }
+      .card, .machine, .navcard { padding: 16px; }
+      .big { font-size: 30px; }
+      .navcard strong { font-size: 22px; }
+      h1 { font-size: 34px; line-height: 1.1; }
+      h2 { font-size: 26px; line-height: 1.15; }
+      dl { grid-template-columns: 1fr; gap: 4px; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Estado actual de máquinas</h1>
-    <div class="muted">GitHub Pages snapshot vivo. Refresco por GitHub Actions.</div>
+    <p class="muted">GitHub Pages snapshot vivo. Refresco por GitHub Actions.</p>
+    <div class="links">
+      <a class="navcard" href="./ourvend/index.html"><strong>OurVend</strong><span class="muted">backend, control y superficies</span></a>
+      <a class="navcard" href="./machine/index.html"><strong>Machine</strong><span class="muted">máquina, docs y fuentes</span></a>
+    </div>
     <div class="summary" id="summary"></div>
     <div class="overview" id="overview"></div>
     <div id="machines"></div>
-    <div class="machine" style="margin-top:18px">
-      <h2 style="margin:0 0 10px 0">Ballbox</h2>
-      <div class="muted" style="margin-bottom:10px">Nuevo árbol semántico principal.</div>
-      <ul>
-        <li><a href="./ourvend/index.html">OurVend</a></li>
-        <li><a href="./machine/index.html">Machine</a></li>
-        
-      </ul>
-    </div>
-    <div class="machine" style="margin-top:18px">
-      
-    </div>
     <p class="muted">Repo: <a href="https://github.com/sebasfavaron/vending-status">sebasfavaron/vending-status</a></p>
   </div>
   <script>
@@ -104,5 +112,3 @@
   </script>
 </body>
 </html>
-
-<style>@media (max-width: 640px){body{font-size:18px} .big{font-size:30px} .card,.machine{padding:18px} dl{grid-template-columns:1fr} }</style>
