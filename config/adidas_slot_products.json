@@ -5,7 +5,19 @@
   },
   "machines": {
     "2601070191": {},
-    "2601070188": {},
+    "2601070188": {
+      "1": "Grip x3",
+      "3": "Grip x3",
+      "13": "Grip x1",
+      "14": "Grip x1",
+      "15": "Grip x1",
+      "16": "Grip x1",
+      "17": "Grip x1",
+      "18": "Grip x1",
+      "56": "Tubo Adidas Speed",
+      "57": "Tubo Adidas Speed",
+      "58": "Tubo Adidas Speed"
+    },
     "2601070184": {
       "1": "Grip x1",
       "2": "Grip x1",
@@ -45,35 +57,89 @@
   "merged_slots": {
     "2601070184": {
       "21": {
-        "member_slots": ["21", "22"],
+        "member_slots": [
+          "21",
+          "22"
+        ],
         "confidence": "explicit_user_example"
       },
       "23": {
-        "member_slots": ["23", "24"],
+        "member_slots": [
+          "23",
+          "24"
+        ],
         "confidence": "inferred_previous_slot_rule"
       },
       "26": {
-        "member_slots": ["26", "27"],
+        "member_slots": [
+          "26",
+          "27"
+        ],
         "confidence": "inferred_previous_slot_rule"
       },
       "31": {
-        "member_slots": ["31", "32"],
+        "member_slots": [
+          "31",
+          "32"
+        ],
         "confidence": "inferred_previous_slot_rule"
       },
       "36": {
-        "member_slots": ["36", "37"],
+        "member_slots": [
+          "36",
+          "37"
+        ],
         "confidence": "inferred_previous_slot_rule"
       },
       "41": {
-        "member_slots": ["41", "42"],
+        "member_slots": [
+          "41",
+          "42"
+        ],
         "confidence": "inferred_previous_slot_rule"
       },
       "43": {
-        "member_slots": ["43", "44"],
+        "member_slots": [
+          "43",
+          "44"
+        ],
         "confidence": "inferred_previous_slot_rule"
       },
       "46": {
-        "member_slots": ["46", "47"],
+        "member_slots": [
+          "46",
+          "47"
+        ],
+        "confidence": "inferred_previous_slot_rule"
+      }
+    },
+    "2601070188": {
+      "13": {
+        "member_slots": [
+          "13",
+          "14"
+        ],
+        "confidence": "mixed_user_plus_sales_validation"
+      },
+      "15": {
+        "member_slots": [
+          "15",
+          "16"
+        ],
+        "confidence": "mixed_user_plus_sales_validation"
+      },
+      "17": {
+        "member_slots": [
+          "17",
+          "18"
+        ],
+        "confidence": "user_photo_with_partial_live_visibility"
+      },
+      "56": {
+        "member_slots": [
+          "56",
+          "57"
+        ],
         "confidence": "inferred_previous_slot_rule"
       }
     }
