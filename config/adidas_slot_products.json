@@ -6,6 +6,23 @@
   "machines": {
     "2601070191": {},
     "2601070188": {},
-    "2601070184": {}
+    "2601070184": {
+      "1": "Grip x1",
+      "2": "Grip x1",
+      "3": "Muñequera Lok",
+      "5": "Muñequera Lok",
+      "7": "Muñequera Lok",
+      "11": "Grip x3",
+      "12": "Grip x3",
+      "13": "Grip x1",
+      "14": "Grip x1",
+      "15": "Grip x1",
+      "17": "Grip x1",
+      "21": "Tubo Adidas Speed",
+      "23": "Tubo Adidas Speed",
+      "25": "Tubo Adidas Speed",
+      "26": "Tubo Adidas Speed",
+      "28": "Tubo Adidas Speed"
+    }
   }
 }
