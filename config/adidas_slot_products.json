@@ -41,5 +41,41 @@
       "47": "Tubo Adidas Speed",
       "48": "Tubo Adidas Speed"
     }
+  },
+  "merged_slots": {
+    "2601070184": {
+      "21": {
+        "member_slots": ["21", "22"],
+        "confidence": "explicit_user_example"
+      },
+      "23": {
+        "member_slots": ["23", "24"],
+        "confidence": "inferred_previous_slot_rule"
+      },
+      "26": {
+        "member_slots": ["26", "27"],
+        "confidence": "inferred_previous_slot_rule"
+      },
+      "31": {
+        "member_slots": ["31", "32"],
+        "confidence": "inferred_previous_slot_rule"
+      },
+      "36": {
+        "member_slots": ["36", "37"],
+        "confidence": "inferred_previous_slot_rule"
+      },
+      "41": {
+        "member_slots": ["41", "42"],
+        "confidence": "inferred_previous_slot_rule"
+      },
+      "43": {
+        "member_slots": ["43", "44"],
+        "confidence": "inferred_previous_slot_rule"
+      },
+      "46": {
+        "member_slots": ["46", "47"],
+        "confidence": "inferred_previous_slot_rule"
+      }
+    }
   }
 }
