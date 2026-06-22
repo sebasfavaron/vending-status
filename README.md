@@ -44,5 +44,5 @@ Live setup still needed:
 - Resend account
 - verified domain `ballbox.app`
 - sender `communications@ballbox.app`
-- `RESEND_API_KEY` in the runtime env
+- `RESEND_API_KEY` in the runtime env or `/home/sebas/runtime/secrets/resend.env`
 - final threshold confirmation before enabling `config/stock_alerts.json`
