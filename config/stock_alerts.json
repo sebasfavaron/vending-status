@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "client": "adidas",
+  "threshold": 2,
+  "provider": "resend",
+  "sender_name": "Ballbox",
+  "sender_email": "communications@ballbox.app",
+  "reply_to": "sebastianfavaron@gmail.com",
+  "recipient_emails": [
+    "sebastianfavaron@gmail.com"
+  ],
+  "inventory_path": "site/ballbox/data/inventory.json",
+  "mapping_path": "config/adidas_slot_products.json",
+  "state_path": "/home/sebas/runtime/ballbox/state/adidas_low_stock_alert_state.json",
+  "subject_prefix": "Ballbox",
+  "notes": [
+    "Threshold 2 is provisional until Sebas confirms the exact numeric value.",
+    "Set enabled=true only after Resend domain verification and API key setup."
+  ]
+}

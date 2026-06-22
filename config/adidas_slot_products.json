@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "format": "machines[machine_id][slot_no] = product label",
+    "fallback": "If a slot is missing here, the alert mail shows 'Slot X'."
+  },
+  "machines": {
+    "2601070191": {},
+    "2601070188": {},
+    "2601070184": {}
+  }
+}

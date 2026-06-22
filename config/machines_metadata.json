@@ -1,0 +1,38 @@
+[
+  {
+    "machine_id": "2601070191",
+    "slug": "sheraton",
+    "label": "Adidas Sheraton",
+    "alias": "Adidas Sheraton",
+    "site": "Lasaigues Sheraton Retiro",
+    "client": "adidas",
+    "group_name": "grupo por defecto",
+    "station_id": "6a286eec9da7c2ed6d7d15cb",
+    "enabled": true,
+    "notes": "TCN id confirmado por usuario."
+  },
+  {
+    "machine_id": "2601070188",
+    "slug": "unicenter",
+    "label": "Adidas Unicenter",
+    "alias": "Adidas Unicenter",
+    "site": "Lasaigues Unicenter",
+    "client": "adidas",
+    "group_name": "grupo por defecto",
+    "station_id": "6a31a0bdf493039d074851dd",
+    "enabled": true,
+    "notes": "TCN id confirmado en Ballbox DB."
+  },
+  {
+    "machine_id": "2601070184",
+    "slug": "almagro",
+    "label": "Adidas Almagro",
+    "alias": "Adidas Almagro",
+    "site": "Lasaigues Almagro · Quintino Bocayuva 943",
+    "client": "adidas",
+    "group_name": "grupo por defecto",
+    "station_id": "6a343abdf493039d0748ad55",
+    "enabled": true,
+    "notes": "TCN id agregado por handoff orquestador."
+  }
+]
