@@ -22,7 +22,6 @@ DEFAULT_SECRET_ENV_PATHS = [
     ROOT / ".env",
 ]
 DEFAULT_LOGO_URL = "https://ballbox.app/images/ballbox-logo-full.png"
-DEFAULT_INVENTORY_URL = "https://ballbox-first.emperor-ratio.ts.net:8446/ballbox/inventory/?client=adidas"
 RESEND_API_URL = "https://api.resend.com/emails"
 TIMEOUT = 30
 
@@ -139,7 +138,6 @@ def load_config(path: Path) -> dict[str, Any]:
         "mapping_path": resolve_path(config.get("mapping_path"), DEFAULT_MAPPING_PATH),
         "state_path": resolve_path(config.get("state_path"), DEFAULT_STATE_PATH),
         "subject_prefix": normalize_text(config.get("subject_prefix") or "Ballbox"),
-        "inventory_url": normalize_text(config.get("inventory_url") or DEFAULT_INVENTORY_URL),
         "logo_url": normalize_text(config.get("logo_url") or DEFAULT_LOGO_URL),
     }
 
@@ -192,7 +190,7 @@ def build_subject(prefix: str, client_label: str, count: int) -> str:
     return f"{prefix} · {client_label}: {count} {noun} de reposición"
 
 
-def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, client_label: str, inventory_url: str | None) -> str:
+def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, client_label: str) -> str:
     lines = [
         f"Hola,",
         "",
@@ -210,8 +208,6 @@ def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
                 f"  Posición {row['slot_no']} · quedan {row['quantity']}{capacity} · precio {price}",
             ]
         )
-    if inventory_url:
-        lines.extend(["", f"Ver inventario completo: {inventory_url}"])
     footer = [
         "",
         "— Equipo Ballbox",
@@ -225,7 +221,7 @@ def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
     return "\n".join(lines)
 
 
-def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, client_label: str, inventory_url: str | None, logo_url: str | None) -> str:
+def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, client_label: str, logo_url: str | None) -> str:
     count = len(alerts)
     title = "Hay un producto para reponer" if count == 1 else f"Hay {count} productos para reponer"
     subtitle = f"Detectamos posiciones con poco stock en {client_label}."
@@ -242,13 +238,6 @@ def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
             "</div>"
             "</td></tr>"
         )
-    button_html = ""
-    if inventory_url:
-        button_html = (
-            "<tr><td style='padding:8px 0 28px 0'>"
-            f"<a href='{escape(inventory_url)}' style='display:inline-block;padding:14px 22px;border-radius:999px;background:#c4d600;color:#111827;text-decoration:none;font-weight:700;font-size:14px'>Ver inventario completo</a>"
-            "</td></tr>"
-        )
     logo_html = ""
     if logo_url:
         logo_html = (
@@ -263,7 +252,17 @@ def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
     note_html = "<br />".join(escape(part) for part in note_parts)
     return f"""
 <html>
+  <head>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <style>
+      u + .body .gmail-blend-screen {{ background:#000; mix-blend-mode:screen; }}
+      u + .body .gmail-blend-difference {{ background:#000; mix-blend-mode:difference; }}
+    </style>
+  </head>
   <body style="margin:0;padding:0;background:#f5f7fb;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <u></u>
+    <div class="body" style="margin:0;padding:0;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:28px 12px;">
       <tr>
         <td align="center">
@@ -271,9 +270,13 @@ def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
             <tr>
               <td style="padding:32px 28px 10px 28px;background:radial-gradient(circle at top left, rgba(196,214,0,0.24), rgba(15,20,15,0) 40%), linear-gradient(180deg, #111711 0%, #0f140f 100%);">
                 {logo_html}
-                <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(196,214,0,0.16);border:1px solid rgba(196,214,0,0.25);color:#d7f53b;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Alerta de reposición</div>
-                <h1 style="margin:18px 0 10px 0;font-size:32px;line-height:1.1;color:#ffffff;">{escape(title)}</h1>
-                <p style="margin:0 0 26px 0;font-size:16px;line-height:1.6;color:rgba(255,255,255,0.78);">{escape(subtitle)}</p>
+                <div class="gmail-blend-screen">
+                  <div class="gmail-blend-difference">
+                    <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(196,214,0,0.16);border:1px solid rgba(196,214,0,0.25);color:#d7f53b;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;-webkit-text-fill-color:#d7f53b;">Alerta de reposición</div>
+                    <h1 style="margin:18px 0 10px 0;font-size:32px;line-height:1.1;color:#ffffff;-webkit-text-fill-color:#ffffff;">{escape(title)}</h1>
+                    <p style="margin:0 0 26px 0;font-size:16px;line-height:1.6;color:rgba(255,255,255,0.78);-webkit-text-fill-color:rgba(255,255,255,0.78);">{escape(subtitle)}</p>
+                  </div>
+                </div>
               </td>
             </tr>
             <tr>
@@ -281,7 +284,6 @@ def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:-4px;">
                   <tr><td style="padding:24px 0 16px 0;font-size:15px;line-height:1.6;color:#344054;">Hola, te dejamos el detalle para revisar:</td></tr>
                   {''.join(items)}
-                  {button_html}
                   <tr>
                     <td style="padding:0;font-size:12px;line-height:1.7;color:#667085;">
                       {note_html}
@@ -297,6 +299,7 @@ def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
         </td>
       </tr>
     </table>
+    </div>
   </body>
 </html>
 """.strip()
@@ -453,8 +456,8 @@ def main() -> int:
             return 2
         generated_at = inventory.get("generated_at")
         subject = build_subject(config["subject_prefix"], config["client_label"], len(newly_low))
-        text_body = build_text_body(newly_low, config["threshold"], generated_at, config["client_label"], config["inventory_url"])
-        html_body = build_html_body(newly_low, config["threshold"], generated_at, config["client_label"], config["inventory_url"], config["logo_url"])
+        text_body = build_text_body(newly_low, config["threshold"], generated_at, config["client_label"])
+        html_body = build_html_body(newly_low, config["threshold"], generated_at, config["client_label"], config["logo_url"])
         send_result = send_resend_email(
             api_key,
             sender_name=config["sender_name"],

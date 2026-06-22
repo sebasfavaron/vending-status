@@ -14,7 +14,6 @@
   "mapping_path": "config/adidas_slot_products.json",
   "state_path": "/home/sebas/runtime/ballbox/state/adidas_low_stock_alert_state.json",
   "subject_prefix": "Ballbox",
-  "inventory_url": "https://ballbox-first.emperor-ratio.ts.net:8446/ballbox/inventory/?client=adidas",
   "logo_url": "https://ballbox.app/images/ballbox-logo-full.png",
   "notes": [
     "Threshold 2 is provisional until Sebas confirms the exact numeric value.",

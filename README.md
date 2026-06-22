@@ -26,6 +26,7 @@ Current MVP shape:
 - no repeat alert until the slot recovers above threshold and falls again
 - manual `machine + slot -> product` mapping with fallback to `Slot X`
 - transactional email via Resend from `communications@ballbox.app`
+- Ballbox-branded HTML optimized for both light mode and dark-mode clients
 
 Files:
 - config: `config/stock_alerts.json`

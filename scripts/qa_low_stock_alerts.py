@@ -39,7 +39,7 @@ def main():
     first_new = [row for row in low_rows if not ({"alerts": {}}.get("alerts", {}).get(row["key"], {})).get("active")]
     live_preview = {
         "subject": build_subject("Ballbox", "Adidas", len(first_new)),
-        "text": build_text_body(first_new, THRESHOLD, inventory.get("generated_at"), "Adidas", "https://ballbox-first.emperor-ratio.ts.net:8446/ballbox/inventory/?client=adidas"),
+        "text": build_text_body(first_new, THRESHOLD, inventory.get("generated_at"), "Adidas"),
     }
 
     second_new = [row for row in low_rows if not (first_state.get("alerts", {}).get(row["key"]) or {}).get("active")]
@@ -49,7 +49,7 @@ def main():
     mapped_new = [row for row in mapped_low_rows if row["key"] == "2601070191:3"]
     mapped_preview = {
         "subject": build_subject("Ballbox", "Adidas", len(mapped_new)),
-        "text": build_text_body(mapped_new, THRESHOLD, inventory.get("generated_at"), "Adidas", "https://ballbox-first.emperor-ratio.ts.net:8446/ballbox/inventory/?client=adidas"),
+        "text": build_text_body(mapped_new, THRESHOLD, inventory.get("generated_at"), "Adidas"),
     }
 
     recovered_inventory = deepcopy(inventory)
@@ -119,7 +119,7 @@ def main():
                 alert_keys=[row["key"] for row in dropped_new],
                 preview={
                     "subject": build_subject("Ballbox", "Adidas", len(dropped_new)),
-                    "text": build_text_body(dropped_new, THRESHOLD, inventory.get("generated_at"), "Adidas", "https://ballbox-first.emperor-ratio.ts.net:8446/ballbox/inventory/?client=adidas"),
+                    "text": build_text_body(dropped_new, THRESHOLD, inventory.get("generated_at"), "Adidas"),
                 },
             ),
         ],
