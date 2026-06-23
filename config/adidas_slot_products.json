@@ -143,5 +143,170 @@
         "confidence": "inferred_previous_slot_rule"
       }
     }
+  },
+  "price_expectations": {
+    "Grip x1": {
+      "expected_price": 9000,
+      "validated_sales": [
+        {
+          "machine_id": "2601070188",
+          "machine_label": "Adidas Unicenter",
+          "slots": [
+            "14",
+            "15",
+            "16"
+          ],
+          "status": "validated_by_sales"
+        }
+      ]
+    },
+    "Grip x3": {
+      "expected_price": 25000,
+      "validated_sales": [],
+      "notes": [
+        {
+          "machine_id": "2601070188",
+          "machine_label": "Adidas Unicenter",
+          "status": "price_conflict_in_snapshot",
+          "detail": "User photo says slots 1 and 3 are Grip x3 at 25000, but current inventory snapshot shows 18000 on both slots. No real sale has validated 25000 yet."
+        }
+      ]
+    },
+    "Muñequera Lok": {
+      "expected_price": "pending_validation_same_as_other_muñequeras",
+      "validated_sales": []
+    },
+    "Muñequera (otra)": {
+      "expected_price": "pending_validation_same_as_other_muñequeras",
+      "validated_sales": []
+    },
+    "Tubo Adidas Speed": {
+      "expected_price": 30000,
+      "validated_sales": [
+        {
+          "machine_id": "2601070188",
+          "machine_label": "Adidas Unicenter",
+          "slots": [
+            "56"
+          ],
+          "status": "validated_by_sales"
+        },
+        {
+          "machine_id": "2601070184",
+          "machine_label": "Adidas Almagro",
+          "slots": [
+            "21"
+          ],
+          "status": "validated_by_sales"
+        }
+      ]
+    },
+    "Tubo Adidas Dubai": {
+      "expected_price": 30000,
+      "validated_sales": []
+    }
+  },
+  "machine_notes": {
+    "2601070188": {
+      "ignored_sales": [
+        {
+          "slot": "13",
+          "amount": 15,
+          "reason": "user_manual_test"
+        }
+      ],
+      "snapshot_anomalies": [
+        "Current inventory snapshot still shows widespread 6553.5 / 199 placeholder-like values on many Unicenter slots.",
+        "Grip x3 expected price conflicts with current snapshot on slots 1 and 3."
+      ]
+    },
+    "2601070191": {
+      "slot_numbering_rule": "slot = tray * 10 + motor",
+      "provisional_layout_hypothesis": [
+        {
+          "tray": 2,
+          "slots": [
+            "21",
+            "23",
+            "25",
+            "26",
+            "28"
+          ],
+          "product": "Tubo Adidas Speed",
+          "confidence": "high_price_pattern_match"
+        },
+        {
+          "tray": 3,
+          "slots": [
+            "31",
+            "33",
+            "35",
+            "36",
+            "38"
+          ],
+          "product": "Tubo Adidas Speed",
+          "confidence": "high_price_pattern_match"
+        },
+        {
+          "tray": 4,
+          "slots": [
+            "41",
+            "42",
+            "43",
+            "44",
+            "48"
+          ],
+          "product": "Tubo Adidas Speed",
+          "confidence": "high_price_pattern_match"
+        },
+        {
+          "tray": 1,
+          "slots": [
+            "11",
+            "12",
+            "13",
+            "14"
+          ],
+          "product": "Grip x1",
+          "confidence": "high_price_pattern_match"
+        },
+        {
+          "tray": 1,
+          "slots": [
+            "15",
+            "17"
+          ],
+          "product": "Grip x3",
+          "confidence": "high_price_pattern_match"
+        },
+        {
+          "tray": 0,
+          "slots": [
+            "3"
+          ],
+          "product": "Grip x3",
+          "confidence": "medium_from_remaining_25000_slots"
+        },
+        {
+          "tray": 0,
+          "slots": [
+            "5",
+            "7"
+          ],
+          "product": "Muñequera (otra)",
+          "confidence": "medium_from_remaining_25000_slots"
+        },
+        {
+          "tray": 0,
+          "slots": [
+            "1",
+            "2"
+          ],
+          "product": "Grip x1",
+          "confidence": "medium_from_remaining_9000_slots",
+          "note": "User memory mentioned 1 Grip x1 in this block, but live price pattern suggests 2 slots at 9000."
+        }
+      ]
+    }
   }
 }
