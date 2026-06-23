@@ -460,7 +460,7 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
         for row in report["by_machine"]
     )
     product_rows = "".join(
-        f"<tr><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827'>{escape(row['product'])}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{row['ventas']}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{escape(money(row['monto_total']))}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#667085'>{escape(', '.join(row['price_status_labels']))}</td></tr>"
+        f"<tr><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827'>{escape(row['product'])}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{row['ventas']}</td><td style='padding:10px 18px 10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{escape(money(row['monto_total']))}</td><td style='padding:10px 0 10px 18px;border-bottom:1px solid #eef2f6;color:#667085'>{escape(', '.join(row['price_status_labels']))}</td></tr>"
         for row in report["by_product"]
     )
     revenue_machine_chart = build_horizontal_chart(report["by_machine"], label_key="machine_label", value_key="monto_total", value_formatter=money, bar_color="#c4d600")
@@ -514,26 +514,26 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
                   <tr><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Máquina</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Ventas</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Monto</th></tr>
                   {machine_rows}
                 </table>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · monto por máquina</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Monto por máquina</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{revenue_machine_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · ventas por máquina</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Ventas por máquina</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{sales_machine_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · monto por producto</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Monto por producto</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{revenue_product_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · ventas por producto</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Ventas por producto</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{sales_product_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · evolución diaria de monto</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Evolución diaria de monto</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{day_revenue_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · evolución diaria de ventas</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Evolución diaria de ventas</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{day_sales_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · posiciones que más facturaron</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Posiciones que más facturaron</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{top_slots_chart}</div>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · tabla por producto</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Tabla por producto</h3>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:0 16px;">
                   <tr><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Producto</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Ventas</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Monto</th><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Validación</th></tr>
                   {product_rows}
                 </table>
-                {"<h3 style='margin:28px 0 10px 0;font-size:18px;color:#111827'>Deep dive · anomalías por máquina</h3><div style='background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;'>" + anomaly_machine_chart + "</div>" if anomaly_machine_chart else ""}
+                {"<h3 style='margin:28px 0 10px 0;font-size:18px;color:#111827'>Anomalías por máquina</h3><div style='background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;'>" + anomaly_machine_chart + "</div>" if anomaly_machine_chart else ""}
                 {evidence_html}
                 {excluded_html}
                 {anomalies_html}
