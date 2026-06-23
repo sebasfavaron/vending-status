@@ -25,6 +25,13 @@ ANOMALY_LABELS = {
     "price_mismatch": "precio cobrado distinto al esperado",
 }
 
+PRICE_STATUS_LABELS = {
+    "matches_expected": "precio validado",
+    "differs_from_expected": "precio distinto al esperado",
+    "expected_price_pending": "precio pendiente de validar",
+    "unclassified": "sin clasificar",
+}
+
 
 def load_env_file(path: Path) -> None:
     if not path.exists():
@@ -262,6 +269,9 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
 
     by_machine = defaultdict(lambda: {"ventas": 0, "monto_total": 0.0})
     by_product = defaultdict(lambda: {"ventas": 0, "monto_total": 0.0, "machines": set(), "price_statuses": set()})
+    by_day = defaultdict(lambda: {"ventas": 0, "monto_total": 0.0})
+    by_slot = defaultdict(lambda: {"ventas": 0, "monto_total": 0.0, "machine_label": "", "product": "", "slot": ""})
+    anomaly_by_machine = defaultdict(int)
     for row in included_sales:
         machine_key = row["machine_label"]
         by_machine[machine_key]["ventas"] += 1
@@ -271,6 +281,16 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
         by_product[product_key]["monto_total"] += row["amount"]
         by_product[product_key]["machines"].add(row["machine_label"])
         by_product[product_key]["price_statuses"].add(row["price_status"])
+        day_key = row["timestamp"].date().isoformat()
+        by_day[day_key]["ventas"] += 1
+        by_day[day_key]["monto_total"] += row["amount"]
+        slot_key = (row["machine_label"], row["slot"], row["product"])
+        slot_row = by_slot[slot_key]
+        slot_row["ventas"] += 1
+        slot_row["monto_total"] += row["amount"]
+        slot_row["machine_label"] = row["machine_label"]
+        slot_row["product"] = row["product"]
+        slot_row["slot"] = row["slot"]
 
     by_machine_rows = [
         {"machine_label": label, **vals}
@@ -283,8 +303,20 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
             "monto_total": vals["monto_total"],
             "machines": sorted(vals["machines"]),
             "price_statuses": sorted(vals["price_statuses"]),
+            "price_status_labels": [PRICE_STATUS_LABELS.get(status, status) for status in sorted(vals["price_statuses"])],
         }
         for product, vals in sorted(by_product.items(), key=lambda item: item[1]["monto_total"], reverse=True)
+    ]
+    by_day_rows = [
+        {"day": day, **vals}
+        for day, vals in sorted(by_day.items())
+    ]
+    by_slot_rows = [
+        {
+            **row,
+            "slot_label": f"{row['machine_label']} · slot {row['slot']} · {row['product']}",
+        }
+        for row in sorted(by_slot.values(), key=lambda row: row["monto_total"], reverse=True)
     ]
     price_evidence_rows = [
         {
@@ -298,6 +330,12 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
     ]
     anomaly_rows = sorted(anomalies, key=lambda row: row["timestamp"], reverse=True)
     excluded_rows = sorted(excluded_sales, key=lambda row: row["timestamp"], reverse=True)
+    for row in anomaly_rows:
+        anomaly_by_machine[row["machine_label"]] += 1
+    anomaly_by_machine_rows = [
+        {"machine_label": label, "anomalies": count}
+        for label, count in sorted(anomaly_by_machine.items(), key=lambda item: item[1], reverse=True)
+    ]
 
     return {
         "month": month,
@@ -307,8 +345,11 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
         "totals": totals,
         "by_machine": by_machine_rows,
         "by_product": by_product_rows,
+        "by_day": by_day_rows,
+        "top_slots": by_slot_rows[:10],
         "excluded_sales": excluded_rows,
         "anomalies": anomaly_rows,
+        "anomaly_by_machine": anomaly_by_machine_rows,
         "price_evidence": price_evidence_rows,
         "machine_notes": machine_notes,
         "sales": sorted(included_sales, key=lambda row: row["timestamp"], reverse=True),
@@ -317,6 +358,52 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
 
 def build_subject(prefix: str, client_label: str, month: str) -> str:
     return f"{prefix} · {client_label}: resumen ventas {month}"
+
+
+def build_horizontal_chart(rows: list[dict[str, Any]], *, label_key: str, value_key: str, value_formatter, bar_color: str) -> str:
+    if not rows:
+        return "<p style='margin:0;color:#667085'>Sin datos.</p>"
+    max_value = max(float(row[value_key]) for row in rows) or 1.0
+    blocks = []
+    for row in rows:
+        width = max(6.0, (float(row[value_key]) / max_value) * 100.0)
+        blocks.append(
+            "<tr><td style='padding:8px 0'>"
+            f"<div style='font-size:13px;line-height:1.4;color:#111827;margin-bottom:6px'><strong>{escape(str(row[label_key]))}</strong> <span style='color:#667085'>· {escape(value_formatter(float(row[value_key])))}</span></div>"
+            f"<div style='height:10px;border-radius:999px;background:#edf1f7;overflow:hidden'><div style='width:{width:.2f}%;height:10px;border-radius:999px;background:{bar_color}'></div></div>"
+            "</td></tr>"
+        )
+    return "<table role='presentation' width='100%' cellspacing='0' cellpadding='0'>" + "".join(blocks) + "</table>"
+
+
+def build_vertical_day_chart(rows: list[dict[str, Any]], *, value_key: str, title_formatter) -> str:
+    if not rows:
+        return "<p style='margin:0;color:#667085'>Sin datos.</p>"
+    max_value = max(float(row[value_key]) for row in rows) or 1.0
+    cols = []
+    for row in rows:
+        height = max(10.0, (float(row[value_key]) / max_value) * 120.0)
+        cols.append(
+            "<td valign='bottom' style='padding:0 4px;text-align:center'>"
+            f"<div style='height:120px;display:flex;align-items:flex-end;justify-content:center'><div title='{escape(title_formatter(row))}' style='width:100%;max-width:28px;height:{height:.2f}px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#d7f53b 0%,#c4d600 100%)'></div></div>"
+            f"<div style='margin-top:8px;font-size:11px;color:#667085'>{escape(row['day'][5:])}</div>"
+            "</td>"
+        )
+    return "<table role='presentation' width='100%' cellspacing='0' cellpadding='0'><tr>" + "".join(cols) + "</tr></table>"
+
+
+def build_top_summary(report: dict[str, Any]) -> list[tuple[str, str]]:
+    top_machine = report['by_machine'][0] if report['by_machine'] else None
+    top_product = report['by_product'][0] if report['by_product'] else None
+    totals = report['totals']
+    summary = []
+    if top_machine:
+        summary.append(("Máquina líder", f"{top_machine['machine_label']} · {money(top_machine['monto_total'])}"))
+    if top_product:
+        summary.append(("Producto líder", f"{top_product['product']} · {money(top_product['monto_total'])}"))
+    summary.append(("Ventas clasificadas", f"{totals['classified_count']}/{totals['ventas']} · {money(totals['classified_amount'])}"))
+    summary.append(("Calidad de datos", f"{totals['excluded_count']} excluidas · {totals['anomaly_count']} anomalías"))
+    return summary
 
 
 def build_text_body(report: dict[str, Any], client_label: str) -> str:
@@ -337,7 +424,7 @@ def build_text_body(report: dict[str, Any], client_label: str) -> str:
         lines.append(f"- {row['machine_label']}: {row['ventas']} ventas · {money(row['monto_total'])}")
     lines.extend(["", "Por producto:"])
     for row in report["by_product"]:
-        status = ", ".join(row["price_statuses"])
+        status = ", ".join(row["price_status_labels"])
         lines.append(f"- {row['product']}: {row['ventas']} ventas · {money(row['monto_total'])} · {status}")
     if report["excluded_sales"]:
         lines.extend(["", "Excluidas:"])
@@ -363,14 +450,27 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
         f"<td style='width:25%;padding:0 6px 12px 6px'><div style='border:1px solid #e9ecf1;border-radius:18px;background:#ffffff;padding:16px'><div style='font-size:12px;color:#667085;text-transform:uppercase;letter-spacing:.08em'>{escape(label)}</div><div style='margin-top:8px;font-size:24px;font-weight:700;color:#111827'>{escape(value)}</div></div></td>"
         for label, value in metric_cards
     )
+    top_summary = build_top_summary(report)
+    summary_html = "".join(
+        f"<td style='padding:0 6px 12px 6px'><div style='border:1px solid #dbe2ea;border-radius:16px;background:#ffffff;padding:14px 16px'><div style='font-size:12px;color:#667085;text-transform:uppercase;letter-spacing:.08em'>{escape(label)}</div><div style='margin-top:6px;font-size:15px;font-weight:700;color:#111827;line-height:1.4'>{escape(value)}</div></div></td>"
+        for label, value in top_summary
+    )
     machine_rows = "".join(
         f"<tr><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827'>{escape(row['machine_label'])}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{row['ventas']}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{escape(money(row['monto_total']))}</td></tr>"
         for row in report["by_machine"]
     )
     product_rows = "".join(
-        f"<tr><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827'>{escape(row['product'])}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{row['ventas']}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{escape(money(row['monto_total']))}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#667085'>{escape(', '.join(row['price_statuses']))}</td></tr>"
+        f"<tr><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827'>{escape(row['product'])}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{row['ventas']}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{escape(money(row['monto_total']))}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#667085'>{escape(', '.join(row['price_status_labels']))}</td></tr>"
         for row in report["by_product"]
     )
+    revenue_machine_chart = build_horizontal_chart(report["by_machine"], label_key="machine_label", value_key="monto_total", value_formatter=money, bar_color="#c4d600")
+    sales_machine_chart = build_horizontal_chart(report["by_machine"], label_key="machine_label", value_key="ventas", value_formatter=lambda value: f"{int(value)} ventas", bar_color="#111827")
+    revenue_product_chart = build_horizontal_chart(report["by_product"], label_key="product", value_key="monto_total", value_formatter=money, bar_color="#c4d600")
+    sales_product_chart = build_horizontal_chart(report["by_product"], label_key="product", value_key="ventas", value_formatter=lambda value: f"{int(value)} ventas", bar_color="#111827")
+    day_revenue_chart = build_vertical_day_chart(report["by_day"], value_key="monto_total", title_formatter=lambda row: f"{row['day']} · {money(row['monto_total'])}")
+    day_sales_chart = build_vertical_day_chart(report["by_day"], value_key="ventas", title_formatter=lambda row: f"{row['day']} · {int(row['ventas'])} ventas")
+    top_slots_chart = build_horizontal_chart(report["top_slots"], label_key="slot_label", value_key="monto_total", value_formatter=money, bar_color="#7c3aed")
+    anomaly_machine_chart = build_horizontal_chart(report["anomaly_by_machine"], label_key="machine_label", value_key="anomalies", value_formatter=lambda value: f"{int(value)} anomalías", bar_color="#ef4444") if report["anomaly_by_machine"] else ""
     excluded_html = ""
     if report["excluded_sales"]:
         excluded_html = "<h3 style='margin:28px 0 10px 0;font-size:18px;color:#111827'>Excluidas</h3><ul style='padding-left:18px;color:#344054'>" + "".join(
@@ -402,22 +502,38 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
                 {logo_html}
                 <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(196,214,0,0.16);border:1px solid rgba(196,214,0,0.25);color:#d7f53b;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Resumen mensual interno</div>
                 <h1 style="margin:18px 0 10px 0;font-size:32px;line-height:1.1;color:#ffffff;">Ventas clasificadas {escape(client_label)}</h1>
-                <p style="margin:0;font-size:16px;line-height:1.6;color:rgba(255,255,255,0.78);">Período {escape(report['month'])}. Beetwallet + mapping manual, con exclusiones explícitas y anomalías visibles.</p>
+                <p style="margin:0;font-size:16px;line-height:1.6;color:rgba(255,255,255,0.78);">Período {escape(report['month'])}. Arriba va lo clave; abajo, un deep dive con gráficos estáticos y tablas para mirar patrones.</p>
               </td>
             </tr>
             <tr>
               <td style="padding:0 28px 30px 28px;background:#f5f7fb;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:20px;"><tr>{cards_html}</tr></table>
-                <h3 style="margin:18px 0 10px 0;font-size:18px;color:#111827">Por máquina</h3>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:6px;"><tr>{summary_html}</tr></table>
+                <h3 style="margin:26px 0 10px 0;font-size:18px;color:#111827">Info clave</h3>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:0 16px;">
                   <tr><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Máquina</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Ventas</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Monto</th></tr>
                   {machine_rows}
                 </table>
-                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Por producto</h3>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · monto por máquina</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{revenue_machine_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · ventas por máquina</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{sales_machine_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · monto por producto</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{revenue_product_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · ventas por producto</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{sales_product_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · evolución diaria de monto</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{day_revenue_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · evolución diaria de ventas</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{day_sales_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · posiciones que más facturaron</h3>
+                <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{top_slots_chart}</div>
+                <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Deep dive · tabla por producto</h3>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:0 16px;">
-                  <tr><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Producto</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Ventas</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Monto</th><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Precio</th></tr>
+                  <tr><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Producto</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Ventas</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Monto</th><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Validación</th></tr>
                   {product_rows}
                 </table>
+                {"<h3 style='margin:28px 0 10px 0;font-size:18px;color:#111827'>Deep dive · anomalías por máquina</h3><div style='background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;'>" + anomaly_machine_chart + "</div>" if anomaly_machine_chart else ""}
                 {evidence_html}
                 {excluded_html}
                 {anomalies_html}
