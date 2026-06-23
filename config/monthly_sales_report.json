@@ -1,0 +1,22 @@
+{
+  "enabled": false,
+  "client": "adidas",
+  "client_label": "Adidas",
+  "sender_name": "Ballbox",
+  "sender_email": "communications@ballbox.app",
+  "reply_to": "sebastianfavaron@gmail.com",
+  "recipient_emails": [
+    "sebastianfavaron@gmail.com"
+  ],
+  "subject_prefix": "Ballbox",
+  "logo_url": "https://ballbox.app/images/ballbox-logo-full.png",
+  "operations_path": "/home/sebas/work/projects/vending-status/data/beetwallet_operations.json",
+  "mapping_path": "config/adidas_slot_products.json",
+  "machines_path": "config/machines_metadata.json",
+  "default_month": "2026-06",
+  "notes": [
+    "Internal MVP only for now.",
+    "Uses raw Beetwallet operations plus manual slot mapping.",
+    "Excludes only confirmed manual/test sales; suspicious real sales stay visible as anomalies."
+  ]
+}
