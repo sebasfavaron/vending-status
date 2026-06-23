@@ -4,7 +4,34 @@
     "fallback": "If a slot is missing here, the alert mail shows 'Slot X'."
   },
   "machines": {
-    "2601070191": {},
+    "2601070191": {
+      "1": "Grip x1",
+      "2": "Grip x1",
+      "3": "Grip x3",
+      "5": "Muñequera (otra)",
+      "7": "Muñequera (otra)",
+      "11": "Grip x1",
+      "12": "Grip x1",
+      "13": "Grip x1",
+      "14": "Grip x1",
+      "15": "Grip x3",
+      "17": "Grip x3",
+      "21": "Tubo Adidas Speed",
+      "23": "Tubo Adidas Speed",
+      "25": "Tubo Adidas Speed",
+      "26": "Tubo Adidas Speed",
+      "28": "Tubo Adidas Speed",
+      "31": "Tubo Adidas Speed",
+      "33": "Tubo Adidas Speed",
+      "35": "Tubo Adidas Speed",
+      "36": "Tubo Adidas Speed",
+      "38": "Tubo Adidas Speed",
+      "41": "Tubo Adidas Speed",
+      "42": "Tubo Adidas Speed",
+      "43": "Tubo Adidas Speed",
+      "44": "Tubo Adidas Speed",
+      "48": "Tubo Adidas Speed"
+    },
     "2601070188": {
       "1": "Grip x3",
       "3": "Grip x3",
@@ -222,90 +249,11 @@
     },
     "2601070191": {
       "slot_numbering_rule": "slot = tray * 10 + motor",
-      "provisional_layout_hypothesis": [
-        {
-          "tray": 2,
-          "slots": [
-            "21",
-            "23",
-            "25",
-            "26",
-            "28"
-          ],
-          "product": "Tubo Adidas Speed",
-          "confidence": "high_price_pattern_match"
-        },
-        {
-          "tray": 3,
-          "slots": [
-            "31",
-            "33",
-            "35",
-            "36",
-            "38"
-          ],
-          "product": "Tubo Adidas Speed",
-          "confidence": "high_price_pattern_match"
-        },
-        {
-          "tray": 4,
-          "slots": [
-            "41",
-            "42",
-            "43",
-            "44",
-            "48"
-          ],
-          "product": "Tubo Adidas Speed",
-          "confidence": "high_price_pattern_match"
-        },
-        {
-          "tray": 1,
-          "slots": [
-            "11",
-            "12",
-            "13",
-            "14"
-          ],
-          "product": "Grip x1",
-          "confidence": "high_price_pattern_match"
-        },
-        {
-          "tray": 1,
-          "slots": [
-            "15",
-            "17"
-          ],
-          "product": "Grip x3",
-          "confidence": "high_price_pattern_match"
-        },
-        {
-          "tray": 0,
-          "slots": [
-            "3"
-          ],
-          "product": "Grip x3",
-          "confidence": "medium_from_remaining_25000_slots"
-        },
-        {
-          "tray": 0,
-          "slots": [
-            "5",
-            "7"
-          ],
-          "product": "Muñequera (otra)",
-          "confidence": "medium_from_remaining_25000_slots"
-        },
-        {
-          "tray": 0,
-          "slots": [
-            "1",
-            "2"
-          ],
-          "product": "Grip x1",
-          "confidence": "medium_from_remaining_9000_slots",
-          "note": "User memory mentioned 1 Grip x1 in this block, but live price pattern suggests 2 slots at 9000."
-        }
+      "layout_status": "confirmed_with_user_after_price_pattern_deduction",
+      "layout_notes": [
+        "Top block confirmed as 2 Grip x1, 1 Grip x3, 2 Muñequeras (otra).",
+        "Middle block confirmed as 4 Grip x1 and 2 Grip x3.",
+        "Three full trays of Tubo Adidas Speed at 30000 confirmed by user and aligned with the live 30000 slot pattern."
       ]
     }
   }
