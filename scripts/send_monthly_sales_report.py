@@ -406,6 +406,23 @@ def build_top_summary(report: dict[str, Any]) -> list[tuple[str, str]]:
     return summary
 
 
+def build_top_story_lines(report: dict[str, Any]) -> list[str]:
+    totals = report['totals']
+    top_machine = report['by_machine'][0] if report['by_machine'] else None
+    top_product = report['by_product'][0] if report['by_product'] else None
+    lines = []
+    if top_machine and totals['monto_total']:
+        share = (float(top_machine['monto_total']) / float(totals['monto_total'])) * 100.0
+        lines.append(f"{top_machine['machine_label']} lideró el mes con {money(top_machine['monto_total'])} ({share:.0f}% del total).")
+    if top_product and totals['monto_total']:
+        share = (float(top_product['monto_total']) / float(totals['monto_total'])) * 100.0
+        lines.append(f"{top_product['product']} fue el producto más fuerte con {money(top_product['monto_total'])} ({share:.0f}% del total).")
+    lines.append(f"Se tomaron {totals['ventas']} ventas y se dejaron afuera {totals['excluded_count']} pruebas/manuales confirmadas.")
+    if totals['anomaly_count']:
+        lines.append(f"Quedaron {totals['anomaly_count']} anomalías visibles para revisar, sin esconderlas del reporte.")
+    return lines
+
+
 def build_text_body(report: dict[str, Any], client_label: str) -> str:
     totals = report["totals"]
     lines = [
@@ -440,6 +457,8 @@ def build_text_body(report: dict[str, Any], client_label: str) -> str:
 
 def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | None) -> str:
     totals = report["totals"]
+    top_story_lines = build_top_story_lines(report)
+    preheader = " · ".join(top_story_lines[:3])
     metric_cards = [
         ("Ventas", str(totals["ventas"])),
         ("Monto total", money(totals["monto_total"])),
@@ -454,6 +473,10 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
     summary_html = "".join(
         f"<td style='padding:0 6px 12px 6px'><div style='border:1px solid #dbe2ea;border-radius:16px;background:#ffffff;padding:14px 16px'><div style='font-size:12px;color:#667085;text-transform:uppercase;letter-spacing:.08em'>{escape(label)}</div><div style='margin-top:6px;font-size:15px;font-weight:700;color:#111827;line-height:1.4'>{escape(value)}</div></div></td>"
         for label, value in top_summary
+    )
+    top_story_html = "".join(
+        f"<li style='margin:0 0 8px 0'>{escape(line)}</li>"
+        for line in top_story_lines
     )
     machine_rows = "".join(
         f"<tr><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827'>{escape(row['machine_label'])}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{row['ventas']}</td><td style='padding:10px 0;border-bottom:1px solid #eef2f6;color:#111827;text-align:right'>{escape(money(row['monto_total']))}</td></tr>"
@@ -493,6 +516,7 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
     return f"""
 <html>
   <body style="margin:0;padding:0;background:#f5f7fb;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">{escape(preheader)}</div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:28px 12px;">
       <tr>
         <td align="center">
@@ -509,11 +533,10 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
               <td style="padding:0 28px 30px 28px;background:#f5f7fb;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:20px;"><tr>{cards_html}</tr></table>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:6px;"><tr>{summary_html}</tr></table>
-                <h3 style="margin:26px 0 10px 0;font-size:18px;color:#111827">Info clave</h3>
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:0 16px;">
-                  <tr><th align='left' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Máquina</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Ventas</th><th align='right' style='padding:14px 0;border-bottom:1px solid #eef2f6;color:#667085;font-size:12px;text-transform:uppercase'>Monto</th></tr>
-                  {machine_rows}
-                </table>
+                <div style="margin-top:8px;background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px 20px;">
+                  <h3 style="margin:0 0 10px 0;font-size:18px;color:#111827">Info clave</h3>
+                  <ul style="margin:0;padding-left:20px;color:#344054;font-size:14px;line-height:1.6;">{top_story_html}</ul>
+                </div>
                 <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Monto por máquina</h3>
                 <div style="background:#ffffff;border:1px solid #e9ecf1;border-radius:18px;padding:18px;">{revenue_machine_chart}</div>
                 <h3 style="margin:28px 0 10px 0;font-size:18px;color:#111827">Ventas por máquina</h3>
