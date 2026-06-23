@@ -20,6 +20,11 @@ DEFAULT_SECRET_ENV_PATHS = [
 RESEND_API_URL = "https://api.resend.com/emails"
 TIMEOUT = 30
 
+ANOMALY_LABELS = {
+    "suspicious_low_amount": "monto sospechosamente bajo",
+    "price_mismatch": "precio cobrado distinto al esperado",
+}
+
 
 def load_env_file(path: Path) -> None:
     if not path.exists():
@@ -237,11 +242,12 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
         included_sales.append(sale)
 
         if row["amount"] <= 100:
-            anomalies.append({**sale, "kind": "suspicious_low_amount"})
+            anomalies.append({**sale, "kind": "suspicious_low_amount", "kind_label": ANOMALY_LABELS["suspicious_low_amount"]})
         elif price_status == "differs_from_expected":
             anomalies.append({
                 **sale,
                 "kind": "price_mismatch",
+                "kind_label": ANOMALY_LABELS["price_mismatch"],
                 "expected_price": expected_price,
             })
 
@@ -341,7 +347,7 @@ def build_text_body(report: dict[str, Any], client_label: str) -> str:
         lines.extend(["", "Anomalías:"])
         for row in report["anomalies"][:10]:
             extra = f" (esperado {money(float(row['expected_price']))})" if row.get("expected_price") is not None else ""
-            lines.append(f"- {row['machine_label']} · {row['product']} · slot {row['slot']} · {money(row['amount'])} · {row['kind']}{extra}")
+            lines.append(f"- {row['machine_label']} · {row['product']} · slot {row['slot']} · {money(row['amount'])} · {row.get('kind_label', row['kind'])}{extra}")
     return "\n".join(lines)
 
 
@@ -374,7 +380,7 @@ def build_html_body(report: dict[str, Any], client_label: str, logo_url: str | N
     anomalies_html = ""
     if report["anomalies"]:
         anomalies_html = "<h3 style='margin:28px 0 10px 0;font-size:18px;color:#111827'>Anomalías visibles</h3><ul style='padding-left:18px;color:#344054'>" + "".join(
-            f"<li>{escape(row['machine_label'])} · {escape(row['product'])} · slot {escape(row['slot'])} · {escape(money(row['amount']))} · {escape(row['kind'])}</li>"
+            f"<li>{escape(row['machine_label'])} · {escape(row['product'])} · slot {escape(row['slot'])} · {escape(money(row['amount']))} · {escape(row.get('kind_label', row['kind']))}</li>"
             for row in report["anomalies"][:12]
         ) + "</ul>"
     evidence_html = ""
