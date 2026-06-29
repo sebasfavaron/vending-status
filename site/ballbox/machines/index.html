@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ballbox Machines</title>
+  <link rel="stylesheet" href="/ballbox/assets/ballbox.css?v=20260623a">
+</head>
+<body>
+  <script src="/ballbox/assets/ballbox.js?v=20260623a"></script>
+  <script>
+    shell('Machines');
+
+    function inventoryPill(status){
+      if(status === 'real') return 'pill ok';
+      if(String(status || '').startsWith('missing') || status === 'fetch_error') return 'pill bad';
+      return 'pill warn';
+    }
+
+    Promise.all([loadData('machines'), loadData('inventory')]).then(([machinesPayload, inventoryPayload]) => {
+      renderMeta(machinesPayload);
+      const q = qs('q').toLowerCase();
+      const machineId = qs('machine_id');
+      const inventoryById = new Map((inventoryPayload.data?.machines || []).map((machine) => [machine.machine_id, machine]));
+      const rows = filterItems(
+        machinesPayload.data?.machines || [],
+        (machine) => (!q || JSON.stringify(machine).toLowerCase().includes(q)) && (!machineId || machine.machine_id === machineId),
+      );
+
+      const hasUntrustedRows = rows.some((machine) => (inventoryById.get(machine.machine_id) || {}).has_untrusted_stock || (inventoryById.get(machine.machine_id) || {}).has_untrusted_price);
+      document.getElementById('app').innerHTML = `
+        ${hasUntrustedRows ? '<div class="banner warn">Capacidad y precio se completan por producto equivalente. Solo la cantidad actual queda indefinida sin dato real.</div>' : ''}
+        <div class="filters">
+          <input id="q" placeholder="buscar por nombre, site o id" value="${esc(q)}">
+        </div>
+        <div class="list">
+          ${rows.map((machine) => {
+            const inventory = inventoryById.get(machine.machine_id) || {};
+            const topProducts = (inventory.product_summary || []).slice(0, 3);
+            const lowPreview = inventory.low_slots_preview || [];
+            return `
+              <section class="card stack">
+                <div class="row">
+                  <div>
+                    <strong>${esc(machine.label || machine.machine_id)}</strong>
+                    <div class="muted">${esc(machine.site || '—')} · ${esc(machine.client || '—')}</div>
+                    <div class="mono muted">${esc(machine.machine_id || '—')}</div>
+                  </div>
+                  <div class="row">
+                    <span class="pill">${esc(machine.network?.label || 'unknown')}</span>
+                    <span class="${inventoryPill(machine.inventory_status)}">${esc(machine.inventory_status || 'unknown')}</span>
+                  </div>
+                </div>
+                <div class="grid">
+                  <a class="card link-muted" href="${machine.actions.inventory}">
+                    <div class="muted">Productos visibles</div>
+                    <div class="big">${machine.inventory?.total_slots || 0}</div>
+                    <div class="muted">${machine.inventory?.physical_slots || machine.inventory?.raw_total_slots || machine.inventory?.total_slots || 0} slots físicos · ${inventory.has_untrusted_stock ? 'indefinido' : (machine.inventory?.total_quantity || 0)} unidades</div>
+                  </a>
+                  <a class="card link-muted" href="${machine.actions.sales}">
+                    <div class="muted">Ventas</div>
+                    <div class="big">${machine.sales_summary?.ventas || 0}</div>
+                    <div class="muted">${money(machine.sales_summary?.monto_total || 0)}</div>
+                  </a>
+                </div>
+                ${topProducts.length ? `
+                  <div class="card table-card">
+                    <h3>Productos visibles</h3>
+                    <table class="table-tight">
+                      <tr><th>Producto</th><th>Posiciones</th><th>Unidades</th></tr>
+                      ${topProducts.map((row) => `
+                        <tr>
+                          <td><strong>${esc(row.product_name)}</strong></td>
+                          <td>${esc(row.slots_text || '—')}</td>
+                          <td>${row.quantity_defined === false ? `indefinido${row.capacity_display != null ? ` · cap ${esc(row.capacity_display)}` : ''}` : `${row.quantity_display ?? 0}`}</td>
+                        </tr>
+                      `).join('')}
+                    </table>
+                  </div>
+                ` : ''}
+                ${lowPreview.length ? `
+                  <div class="banner warn">Bajo stock: ${lowPreview.map((slot) => `${esc(slot.display_name)} (${esc(slot.slot_label)} · ${esc(slot.quantity)})`).join(' · ')}</div>
+                ` : ''}
+                <p class="muted">${esc(machine.status_note || machine.notes || '')}</p>
+                <div class="row">
+                  <a href="${machine.actions.inventory}">detalle inventario</a>
+                  <a href="${machine.actions.sales}">detalle ventas</a>
+                </div>
+              </section>
+            `;
+          }).join('') || '<div class="empty">Sin máquinas visibles.</div>'}
+        </div>
+      `;
+
+      document.getElementById('q').onchange = () => {
+        const url = new URL(location);
+        const next = document.getElementById('q').value;
+        if(next) url.searchParams.set('q', next); else url.searchParams.delete('q');
+        location = url;
+      };
+    }).catch((error) => {
+      document.getElementById('app').innerHTML = `<div class="banner bad">${esc(String(error))}</div>`;
+    });
+  </script>
+</body>
+</html>

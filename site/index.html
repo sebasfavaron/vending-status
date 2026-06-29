@@ -46,10 +46,11 @@
 <body>
   <div class="wrap">
     <h1>Estado actual de máquinas</h1>
-    <p class="muted">GitHub Pages snapshot vivo. Refresco por GitHub Actions.</p>
+    <p class="muted">Snapshot local de status + enlaces al dashboard Ballbox servido desde el servidor.</p>
     <div class="links">
       <a class="navcard" href="./ourvend/index.html"><strong>OurVend</strong><span class="muted">backend, control y superficies</span></a>
       <a class="navcard" href="./machine/index.html"><strong>Machine</strong><span class="muted">máquina, docs y fuentes</span></a>
+      <a class="navcard" href="https://ballbox-first.emperor-ratio.ts.net/ballbox/inventory/?client=adidas"><strong>Adidas inventario</strong><span class="muted">dashboard publicado</span></a>
     </div>
     <div class="summary" id="summary"></div>
     <div class="overview" id="overview"></div>
@@ -59,26 +60,41 @@
   <script>
     function statusClass(label) { if (label === 'online') return 'online'; if (label === 'offline') return 'offline'; return 'unknown'; }
     function pretty(label) { return ({ online: 'online', offline: 'offline' }[label]) || label || 'unknown'; }
-    function renderSummary(data) {
+    function money(value) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Number(value || 0)); }
+    function buildAdidasMap(data) {
+      const map = new Map();
+      for (const row of (data?.machines || [])) map.set(String(row.machine_id), row);
+      return map;
+    }
+    function renderSummary(data, adidas) {
       document.getElementById('summary').innerHTML = `
         <div class="card"><div class="label">Máquinas</div><div class="big">${data.machine_count ?? '—'}</div></div>
         <div class="card"><div class="label">Online</div><div class="big">${data.online_count ?? '—'}</div></div>
         <div class="card"><div class="label">Offline</div><div class="big">${data.offline_count ?? '—'}</div></div>
         <div class="card"><div class="label">Actualizado</div><div>${data.updated_at ? new Date(data.updated_at).toLocaleString() : '—'}</div></div>`;
       const o = data.overview || {};
+      const a = adidas?.totals || {};
       document.getElementById('overview').innerHTML = `
         <div class="card"><div class="label">Ventas hoy</div><div class="big">${o.sales_today_total ?? '0'}</div><div class="muted">cash ${o.sales_today_cash ?? '0'} · non-cash ${o.sales_today_non_cash ?? '0'}</div></div>
         <div class="card"><div class="label">Máquinas con faltantes</div><div class="big">${o.stockout_machine_count ?? '0'}</div><div class="muted">slots ${o.stockout_slot_count ?? '0'} · productos ${o.stockout_commodity_count ?? '0'}</div></div>
         <div class="card"><div class="label">Red anormal</div><div class="big">${o.abnormal_network_count ?? '0'}</div></div>
-        <div class="card"><div class="label">Máquinas con falla</div><div class="big">${o.faulty_machine_count ?? '0'}</div></div>`;
+        <div class="card"><div class="label">Cliente Adidas Padel</div><div class="big">${a.matched_machine_count ?? '0'}</div><div class="muted">máquinas · ${a.total_slots ?? '0'} slots · ${a.low_slots ?? '0'} slots bajos</div></div>`;
     }
-    function renderMachines(data) {
+    function renderMachines(data, adidasMap) {
       const root = document.getElementById('machines');
       if (!Array.isArray(data.machines) || data.machines.length === 0) { root.innerHTML = '<div class="card error">Sin máquinas visibles.</div>'; return; }
-      root.innerHTML = data.machines.map(m => `
+      root.innerHTML = data.machines.map(m => {
+        const adidas = adidasMap.get(String(m.machine_id));
+        const clientBlock = adidas ? `
+            <dt>Cliente</dt><dd>${adidas.client}</dd>
+            <dt>Sede</dt><dd>${adidas.site || adidas.label || '—'}</dd>
+            <dt>Inventario Adidas</dt><dd>${adidas.summary ? `${adidas.summary.total_slots} slots · ${adidas.summary.total_quantity} unidades · ${adidas.summary.empty_slots} vacíos · ${adidas.summary.low_slots} bajos` : adidas.inventory_status || 'sin snapshot'}</dd>
+            <dt>Ventas Adidas</dt><dd>${adidas.sales ? `${adidas.sales.ventas || 0} ventas · ${money(adidas.sales.monto_total)}` : '—'}</dd>
+            <dt>Detalle Adidas</dt><dd><a href="https://ballbox-first.emperor-ratio.ts.net:8446/ballbox/inventory/?client=adidas">ver dashboard</a></dd>` : '';
+        return `
         <section class="machine">
           <div class="row">
-            <div><h2 style="margin:0 0 6px 0">${m.alias || m.machine_id}</h2><div class="muted">Grupo: ${m.group_name || '—'}</div></div>
+            <div><h2 style="margin:0 0 6px 0">${adidas?.label || m.alias || m.machine_id}</h2><div class="muted">Grupo: ${m.group_name || '—'}${adidas ? ' · cliente Adidas Padel' : ''}</div></div>
             <div><span class="pill ${statusClass(m.network?.label)}">${pretty(m.network?.label)}</span></div>
           </div>
           <dl>
@@ -91,17 +107,23 @@
             <dt>Ventas hoy</dt><dd>${m.sales_today?.amount || '0'} · ${m.sales_today?.quantity || '0'} ventas</dd>
             <dt>Faltantes</dt><dd>${m.stock?.out_of_stock ? 'sí' : 'no'}</dd>
             <dt>Última señal</dt><dd>${m.freshness?.last_upload_time || 'sin dato'}</dd>
-            <dt>Versión</dt><dd>${m.version || '—'}</dd>
+            <dt>Versión</dt><dd>${m.version || '—'}</dd>${clientBlock}
             <dt>Acciones visibles</dt><dd>${Array.isArray(m.visible_actions) ? m.visible_actions.join(' · ') : '—'}</dd>
           </dl>
-        </section>`).join('');
+        </section>`;
+      }).join('');
     }
     async function refresh() {
       try {
-        const res = await fetch('./status.json?t=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) throw new Error('status ' + res.status);
-        const data = await res.json();
-        renderSummary(data); renderMachines(data);
+        const [statusRes, adidasRes] = await Promise.all([
+          fetch('./status.json?t=' + Date.now(), { cache: 'no-store' }),
+          fetch('./adidas_inventory_snapshot.json?t=' + Date.now(), { cache: 'no-store' }).catch(() => null),
+        ]);
+        if (!statusRes.ok) throw new Error('status ' + statusRes.status);
+        const data = await statusRes.json();
+        const adidas = adidasRes && adidasRes.ok ? await adidasRes.json() : null;
+        renderSummary(data, adidas);
+        renderMachines(data, buildAdidasMap(adidas));
       } catch (err) {
         document.getElementById('summary').innerHTML = '<div class="card error">No pude cargar el estado.</div>';
         document.getElementById('overview').innerHTML = '';

@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ballbox Sales</title>
+  <link rel="stylesheet" href="/ballbox/assets/ballbox.css?v=20260626a">
+</head>
+<body>
+  <script src="/ballbox/assets/ballbox.js?v=20260623a"></script>
+  <script>
+    shell('Sales');
+
+    const pct = (value) => `${Number(value || 0).toFixed(1)}%`;
+    const avg = (amount, sales) => sales ? amount / sales : 0;
+
+    function stockPill(state, qty, cap, defined){
+      if(defined === false) return `<span class="pill warn">indefinido${cap != null ? ` · cap ${esc(cap)}` : ''}</span>`;
+      const stockText = qty == null ? 'sin snapshot' : `${esc(qty)} / ${esc(cap ?? '—')}`;
+      if(state === 'empty') return `<span class="pill bad">vacío · ${stockText}</span>`;
+      if(state === 'low') return `<span class="pill warn">bajo · ${stockText}</span>`;
+      if(state === 'ok') return `<span class="pill ok">ok · ${stockText}</span>`;
+      return `<span class="pill">${stockText}</span>`;
+    }
+
+    function dayBar(segments){
+      if(!segments || !segments.length) return '<div class="sales-bar empty-bar"></div>';
+      return `<div class="sales-bar">${segments.map((segment, index) => {
+        const width = Math.max(Number(segment.share || 0), .8);
+        const radius = segments.length === 1 ? 'border-radius:999px' : index === 0 ? 'border-radius:999px 0 0 999px' : index === segments.length - 1 ? 'border-radius:0 999px 999px 0' : '';
+        return `<span title="${esc(segment.product)} · ${money(segment.amount)} · ${esc(segment.sales)} ventas · ${pct(segment.share)}" style="width:${width}%;background:${esc(segment.color || '#9dd7ff')};${radius}"></span>`;
+      }).join('')}</div>`;
+    }
+
+    loadData('sales').then((payload) => {
+      renderMeta(payload);
+      const data = payload.data || {};
+      const report = data.monthly_report || {};
+      const client = qs('client') || 'adidas';
+      const machineId = qs('machine_id');
+      const machineRows = filterItems(data.by_station || [], (row) => (!client || row.client === client) && (!machineId || row.machine_id === machineId));
+      const slotRows = filterItems(data.by_station_slot || [], (row) => (!client || row.client === client) && (!machineId || row.machine_id === machineId));
+      const machineOptions = filterItems(data.by_station || [], (row) => !client || row.client === client);
+      const reportMachines = filterItems(report.machine_sections || [], (row) => !machineId || row.machine_id === machineId);
+      const totals = report.totals || machineRows.reduce((acc, row) => {
+        acc.sales += Number(row.ventas || 0);
+        acc.amount += Number(row.monto_total || 0);
+        return acc;
+      }, { sales: 0, amount: 0 });
+
+      const productMap = new Map();
+      for(const machine of reportMachines){
+        for(const row of machine.product_totals || []){
+          const key = row.product || '—';
+          if(!productMap.has(key)) productMap.set(key, { product: key, sales: 0, amount: 0, machines: new Set(), color: row.color });
+          const item = productMap.get(key);
+          item.sales += Number(row.sales || 0);
+          item.amount += Number(row.amount || 0);
+          item.machines.add(machine.label || machine.machine_id || '—');
+        }
+      }
+      if(!productMap.size){
+        for(const row of slotRows){
+          const key = row.product_name || row.slot_label || row.slot || '—';
+          if(!productMap.has(key)) productMap.set(key, { product: key, sales: 0, amount: 0, machines: new Set() });
+          const item = productMap.get(key);
+          item.sales += Number(row.ventas || 0);
+          item.amount += Number(row.monto_total || 0);
+          item.machines.add(row.station_name || row.machine_id || '—');
+        }
+      }
+      const productRows = Array.from(productMap.values())
+        .map((row) => ({ ...row, machine_count: row.machines.size, machines_text: Array.from(row.machines).sort().join(' · ') }))
+        .sort((a, b) => b.amount - a.amount || b.sales - a.sales || a.product.localeCompare(b.product));
+      const topProducts = productRows.slice(0, 6);
+      const maxProduct = Math.max(...topProducts.map((row) => row.amount), 1);
+      const activeMachines = reportMachines.filter((row) => Number(row.total_sales || 0) > 0);
+      const topMachine = [...reportMachines].sort((a,b) => Number(b.total_amount || 0) - Number(a.total_amount || 0))[0];
+
+      document.getElementById('app').innerHTML = `
+        ${report.error ? `<div class="banner warn">Analítica mensual no disponible: ${esc(report.error)}. Se muestra resumen publicado.</div>` : ''}
+        ${slotRows.some((row) => row.inventory_stock_defined === false) ? '<div class="banner warn">Capacidad/precio se completan por producto equivalente. Stock indefinido solo cuando vendor no da dato real.</div>' : ''}
+        <section class="sales-hero card">
+          <div>
+            <div class="muted">Vista holística · ${esc(client || 'todos')} · ${esc(report.month || data.meta?.desde || 'actual')}</div>
+            <h1>Ventas actualizadas</h1>
+            <div class="muted">Fuente: operaciones Beetwallet + inventario actual. Actualizado ${esc(report.source?.sales_generated_at || payload.source_as_of || payload.generated_at || '—')}</div>
+          </div>
+          <div class="filters compact">
+            <select id="client"><option value="adidas" ${client === 'adidas' ? 'selected' : ''}>adidas</option><option value="" ${!client ? 'selected' : ''}>todos</option></select>
+            <select id="machine_id"><option value="">todas las máquinas</option>${machineOptions.map((row) => `<option value="${esc(row.machine_id || '')}" ${row.machine_id === machineId ? 'selected' : ''}>${esc(row.station_name || row.machine_id || '—')}</option>`).join('')}</select>
+          </div>
+        </section>
+        <div class="grid">
+          <div class="card"><div class="muted">Monto MTD</div><div class="big">${money(totals.amount || 0)}</div><div class="muted small">${esc(totals.sales || 0)} ventas</div></div>
+          <div class="card"><div class="muted">Ticket promedio</div><div class="big">${money(avg(Number(totals.amount || 0), Number(totals.sales || 0)))}</div></div>
+          <div class="card"><div class="muted">Máquinas activas</div><div class="big">${activeMachines.length}/${reportMachines.length || machineRows.length}</div><div class="muted small">con ventas este mes</div></div>
+          <div class="card"><div class="muted">Top máquina</div><div class="big">${esc(topMachine?.label || '—')}</div><div class="muted small">${money(topMachine?.total_amount || 0)}</div></div>
+        </div>
+        <div class="card">
+          <h2>Mix de productos</h2>
+          <div class="sales-product-list">${topProducts.map((row) => `
+            <div class="sales-product-row">
+              <div><strong>${esc(row.product)}</strong><div class="muted small">${esc(row.sales)} ventas · ${esc(row.machine_count)} máquinas</div></div>
+              <div class="sales-mini"><span style="width:${Math.max((row.amount / maxProduct) * 100, 2)}%;background:${esc(row.color || '#9dd7ff')}"></span></div>
+              <div class="mono nowrap">${money(row.amount)}</div>
+            </div>`).join('') || '<div class="empty">Sin productos vendidos.</div>'}</div>
+        </div>
+        <div class="card table-card">
+          <h2>Máquina x día x producto</h2>
+          ${reportMachines.map((machine) => `
+            <div class="sales-machine-block">
+              <div class="row"><div><strong>${esc(machine.label || machine.machine_id)}</strong><div class="muted small">${esc(machine.site || machine.machine_id || '')}</div></div><div class="mono">${money(machine.total_amount || 0)} · ${esc(machine.total_sales || 0)} ventas</div></div>
+              <table class="table-tight sales-days"><tr><th>Día</th><th>Ventas</th><th>Monto</th><th>Mix</th></tr>
+              ${(machine.collapsed_day_rows || machine.day_rows || []).map((row) => row.kind === 'gap'
+                ? `<tr><td colspan="4" class="muted small">${esc(row.label || 'sin ventas')}</td></tr>`
+                : `<tr><td class="nowrap">${esc(row.day || '—')}</td><td>${esc(row.total_sales || 0)}</td><td>${money(row.total_amount || 0)}</td><td>${dayBar(row.segments)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">Sin ventas.</td></tr>'}
+              </table>
+            </div>`).join('') || '<div class="empty">Sin detalle mensual para este filtro.</div>'}
+        </div>
+        <div class="card table-card">
+          <h2>Detalle consolidado</h2>
+          <table class="table-tight"><tr><th>Producto</th><th>Ventas</th><th>Monto</th><th>Máquinas</th></tr>${productRows.map((row) => `<tr><td><strong>${esc(row.product)}</strong></td><td>${esc(row.sales)}</td><td>${money(row.amount)}</td><td>${esc(row.machine_count)}<div class="muted small">${esc(row.machines_text || '—')}</div></td></tr>`).join('') || '<tr><td colspan="4" class="muted">Sin ventas.</td></tr>'}</table>
+        </div>
+        <div class="card table-card">
+          <h2>Stock actual sobre slots vendidos</h2>
+          <table class="table-tight"><tr><th>Producto</th><th>Máquina</th><th>Slot</th><th>Ventas</th><th>Monto</th><th>Stock</th></tr>${slotRows.map((row) => `<tr><td><strong>${esc(row.product_name || row.slot_label || '—')}</strong></td><td>${esc(row.station_name || row.machine_id || '—')}</td><td class="nowrap">${esc(row.slot_label || row.slot || '—')}</td><td>${row.ventas || 0}</td><td>${money(row.monto_total || 0)}</td><td>${stockPill(row.inventory_state, row.inventory_quantity, row.inventory_capacity, row.inventory_stock_defined)}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Sin slots vendidos.</td></tr>'}</table>
+        </div>`;
+
+      function applyFilters(){
+        const url = new URL(location);
+        const nextClient = document.getElementById('client').value;
+        const nextMachine = document.getElementById('machine_id').value;
+        if(nextClient) url.searchParams.set('client', nextClient); else url.searchParams.delete('client');
+        if(nextMachine) url.searchParams.set('machine_id', nextMachine); else url.searchParams.delete('machine_id');
+        location = url;
+      }
+      document.getElementById('client').onchange = applyFilters;
+      document.getElementById('machine_id').onchange = applyFilters;
+    }).catch((error) => {
+      document.getElementById('app').innerHTML = `<div class="banner bad">${esc(String(error))}</div>`;
+    });
+  </script>
+</body>
+</html>

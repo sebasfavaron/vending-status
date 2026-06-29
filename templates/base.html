@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or 'Vending Web' }}</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:#0b1220;color:#e5eefc}a{color:#9fd2ff}header{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;gap:16px;flex-wrap:wrap;align-items:center}nav a{margin-right:12px}main{max-width:1100px;margin:0 auto;padding:20px}.card{background:#121b2c;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:16px}.muted{color:#99a9c2}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #31425f;background:#0b1220;color:#fff}button{padding:10px 14px;border:none;border-radius:8px;background:#2d72ff;color:#fff;font-weight:700;cursor:pointer}.danger{background:#922}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.flash{padding:10px 12px;border-radius:8px;background:#183256;margin-bottom:12px}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#183256;font-size:12px}.actions{display:flex;gap:8px;flex-wrap:wrap}.mono{font-family:ui-monospace,monospace;white-space:pre-wrap;word-break:break-word}
+  </style>
+</head>
+<body>
+<header>
+  <strong>Vending Web</strong>
+  <nav>
+    <a href="{{ url_for('home') }}">Inicio</a>
+    <a href="{{ url_for('products_index') }}">Productos</a>
+    <a href="{{ url_for('ads_index') }}">Ads</a>
+    <a href="{{ url_for('machines_index') }}">Máquinas</a>
+    <a href="{{ url_for('adidas_inventory') }}">Adidas inventario</a>
+    <a href="{{ url_for('adidas_sales') }}">Adidas ventas</a>
+    <a href="{{ url_for('health') }}">Health</a>
+    {% if session.get('ok') %}<a href="{{ url_for('logout') }}">Salir</a>{% endif %}
+  </nav>
+</header>
+<main>
+  {% for m in get_flashed_messages() %}<div class="flash">{{ m }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
