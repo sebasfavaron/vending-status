@@ -2,6 +2,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+mkdir -p /home/sebas/runtime/ballbox/state
+exec 9>/home/sebas/runtime/ballbox/state/monthly-sales-report.lock
+if ! flock -n 9; then
+  echo "monthly sales report already running"
+  exit 0
+fi
+
 if [[ -f ./.env ]]; then
   set -a
   source ./.env

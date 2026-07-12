@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
 from html import escape
@@ -22,6 +23,8 @@ DEFAULT_SECRET_ENV_PATHS = [
 ]
 RESEND_API_URL = "https://api.resend.com/emails"
 TIMEOUT = 30
+SENT_LOG_PATH = Path("/home/sebas/runtime/ballbox/state/monthly_sales_report_sent.json")
+TELEGRAM_NOTIFY = Path("/home/sebas/.agents/skills/telegram-notify/telegram-notify")
 
 PALETTE_TEAL = "#004f64"
 PALETTE_GOLD = "#ffb800"
@@ -684,6 +687,26 @@ def send_resend_email(api_key: str, *, sender_name: str, sender_email: str, repl
     return response.json()
 
 
+def send_telegram(message: str) -> None:
+    if not TELEGRAM_NOTIFY.exists():
+        return
+    try:
+        subprocess.run([str(TELEGRAM_NOTIFY), message], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+    except Exception:
+        pass
+
+
+def load_sent_log() -> dict[str, Any]:
+    return load_json(SENT_LOG_PATH, {}) or {}
+
+
+def record_sent(month: str, resend_id: str | None) -> None:
+    SENT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    log = load_sent_log()
+    log[month] = {"sent_at": now_iso(), "resend_id": resend_id}
+    SENT_LOG_PATH.write_text(json.dumps(log, ensure_ascii=False, indent=2) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Send internal monthly Adidas sales report.")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
@@ -691,6 +714,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--write-json", help="Write report JSON to path")
     parser.add_argument("--preview-path", help="Write HTML preview to this path")
+    parser.add_argument("--force", action="store_true", help="Send even if this month was already sent")
     args = parser.parse_args()
 
     config = load_config(Path(args.config))
@@ -740,20 +764,37 @@ def main() -> int:
         print(json.dumps(json_safe({**summary, "status": "disabled"}), ensure_ascii=False, indent=2))
         return 0
 
+    already_sent = load_sent_log().get(month)
+    if already_sent and not args.force:
+        print(json.dumps(json_safe({**summary, "status": "skipped_already_sent", "previously_sent": already_sent}), ensure_ascii=False, indent=2))
+        send_telegram(f"⏭️ Reporte mensual Adidas {month} ya se había enviado el {already_sent.get('sent_at', '?')}, se omite (usar --force para reenviar).")
+        return 0
+
     api_key = normalize_text(os.getenv("RESEND_API_KEY"))
     if not api_key:
         raise SystemExit("missing RESEND_API_KEY")
-    send_result = send_resend_email(
-        api_key,
-        sender_name=config["sender_name"],
-        sender_email=config["sender_email"],
-        reply_to=config["reply_to"],
-        recipients=config["recipient_emails"],
-        subject=subject,
-        text_body=text_body,
-        html_body=html_body,
-    )
+    try:
+        send_result = send_resend_email(
+            api_key,
+            sender_name=config["sender_name"],
+            sender_email=config["sender_email"],
+            reply_to=config["reply_to"],
+            recipients=config["recipient_emails"],
+            subject=subject,
+            text_body=text_body,
+            html_body=html_body,
+        )
+    except Exception as exc:
+        send_telegram(f"❌ Reporte mensual Adidas {month} FALLÓ al enviar: {exc}")
+        raise
+    resend_id = send_result.get("id") if isinstance(send_result, dict) else None
+    record_sent(month, resend_id)
     print(json.dumps(json_safe({**summary, "status": "sent", "send_result": send_result}), ensure_ascii=False, indent=2))
+    totals = report["totals"]
+    send_telegram(
+        f"📧 Reporte mensual Adidas {month} enviado a {', '.join(config['recipient_emails'])}\n"
+        f"Ventas: {totals.get('ventas')} · Monto: ${money(totals.get('monto_total', 0))} · Anomalías: {totals.get('anomaly_count')}"
+    )
     return 0
 
 
