@@ -24,6 +24,7 @@ DEFAULT_SECRET_ENV_PATHS = [
 RESEND_API_URL = "https://api.resend.com/emails"
 TIMEOUT = 30
 SENT_LOG_PATH = Path("/home/sebas/runtime/ballbox/state/monthly_sales_report_sent.json")
+REVIEWED_LOG_PATH = Path("/home/sebas/runtime/ballbox/state/monthly_sales_report_reviewed.json")
 TELEGRAM_NOTIFY = Path("/home/sebas/.agents/skills/telegram-notify/telegram-notify")
 
 PALETTE_TEAL = "#004f64"
@@ -142,6 +143,7 @@ def load_config(path: Path) -> dict[str, Any]:
         "sender_email": normalize_text(config.get("sender_email") or "communications@ballbox.app"),
         "reply_to": normalize_text(config.get("reply_to") or ""),
         "recipient_emails": [normalize_text(item) for item in config.get("recipient_emails") or [] if normalize_text(item)],
+        "review_recipient_emails": [normalize_text(item) for item in config.get("review_recipient_emails") or [] if normalize_text(item)],
         "subject_prefix": normalize_text(config.get("subject_prefix") or "Ballbox"),
         "logo_url": normalize_text(config.get("logo_url") or ""),
         "operations_path": resolve(config.get("operations_path"), "data/beetwallet_operations.json"),
@@ -696,25 +698,26 @@ def send_telegram(message: str) -> None:
         pass
 
 
-def load_sent_log() -> dict[str, Any]:
-    return load_json(SENT_LOG_PATH, {}) or {}
+def load_month_log(path: Path) -> dict[str, Any]:
+    return load_json(path, {}) or {}
 
 
-def record_sent(month: str, resend_id: str | None) -> None:
-    SENT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    log = load_sent_log()
-    log[month] = {"sent_at": now_iso(), "resend_id": resend_id}
-    SENT_LOG_PATH.write_text(json.dumps(log, ensure_ascii=False, indent=2) + "\n")
+def record_month_log(path: Path, month: str, entry: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    log = load_month_log(path)
+    log[month] = entry
+    path.write_text(json.dumps(log, ensure_ascii=False, indent=2) + "\n")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Send internal monthly Adidas sales report.")
+    parser = argparse.ArgumentParser(description="Send Adidas monthly sales report (review copy by default, real client send with --confirm-send).")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
     parser.add_argument("--month", help="YYYY-MM")
-    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--dry-run", action="store_true", help="Build the preview only, no email, no state changes")
     parser.add_argument("--write-json", help="Write report JSON to path")
     parser.add_argument("--preview-path", help="Write HTML preview to this path")
-    parser.add_argument("--force", action="store_true", help="Send even if this month was already sent")
+    parser.add_argument("--confirm-send", action="store_true", help="Send the REAL report to recipient_emails (the client). Default (no flag) only emails review_recipient_emails.")
+    parser.add_argument("--force", action="store_true", help="Bypass the already-sent guard and the review-required guard")
     args = parser.parse_args()
 
     config = load_config(Path(args.config))
@@ -764,15 +767,55 @@ def main() -> int:
         print(json.dumps(json_safe({**summary, "status": "disabled"}), ensure_ascii=False, indent=2))
         return 0
 
-    already_sent = load_sent_log().get(month)
-    if already_sent and not args.force:
-        print(json.dumps(json_safe({**summary, "status": "skipped_already_sent", "previously_sent": already_sent}), ensure_ascii=False, indent=2))
-        send_telegram(f"⏭️ Reporte mensual Adidas {month} ya se había enviado el {already_sent.get('sent_at', '?')}, se omite (usar --force para reenviar).")
-        return 0
-
     api_key = normalize_text(os.getenv("RESEND_API_KEY"))
     if not api_key:
         raise SystemExit("missing RESEND_API_KEY")
+
+    if not args.confirm_send:
+        # Unattended path (this is what the monthly timer calls): review copy only,
+        # to review_recipient_emails. Never touches the real client.
+        already_reviewed = load_month_log(REVIEWED_LOG_PATH).get(month)
+        if already_reviewed and not args.force:
+            print(json.dumps(json_safe({**summary, "status": "skipped_already_reviewed", "previously_reviewed": already_reviewed}), ensure_ascii=False, indent=2))
+            return 0
+        review_subject = f"[REVISAR] {subject}"
+        try:
+            send_result = send_resend_email(
+                api_key,
+                sender_name=config["sender_name"],
+                sender_email=config["sender_email"],
+                reply_to=config["reply_to"],
+                recipients=config["review_recipient_emails"],
+                subject=review_subject,
+                text_body=text_body,
+                html_body=preview_html,
+            )
+        except Exception as exc:
+            send_telegram(f"❌ Preview mensual Adidas {month} FALLÓ al generarse/enviarse para revisión: {exc}")
+            raise
+        resend_id = send_result.get("id") if isinstance(send_result, dict) else None
+        record_month_log(REVIEWED_LOG_PATH, month, {"reviewed_at": now_iso(), "resend_id": resend_id})
+        print(json.dumps(json_safe({**summary, "status": "review_sent", "send_result": send_result}), ensure_ascii=False, indent=2))
+        send_telegram(
+            f"🔍 Preview del reporte mensual Adidas {month} listo, te lo mandé para revisar.\n"
+            f"Cuando esté OK: ./scripts/run_monthly_sales_report.sh --month {month} --confirm-send\n"
+            f"Ventas: {report['totals'].get('ventas')} · Monto: ${money(report['totals'].get('monto_total', 0))}"
+        )
+        return 0
+
+    # --confirm-send: the real, client-facing send. Requires a review to exist first.
+    already_reviewed = load_month_log(REVIEWED_LOG_PATH).get(month)
+    if not already_reviewed and not args.force:
+        message = f"refusing --confirm-send for {month}: no review was sent yet (run without --confirm-send first, or pass --force to override)"
+        print(json.dumps(json_safe({**summary, "status": "review_required", "error": message}), ensure_ascii=False, indent=2))
+        raise SystemExit(message)
+
+    already_sent = load_month_log(SENT_LOG_PATH).get(month)
+    if already_sent and not args.force:
+        print(json.dumps(json_safe({**summary, "status": "skipped_already_sent", "previously_sent": already_sent}), ensure_ascii=False, indent=2))
+        send_telegram(f"⏭️ Reporte mensual Adidas {month} ya se había enviado al cliente el {already_sent.get('sent_at', '?')}, se omite (usar --force para reenviar).")
+        return 0
+
     try:
         send_result = send_resend_email(
             api_key,
@@ -785,14 +828,14 @@ def main() -> int:
             html_body=html_body,
         )
     except Exception as exc:
-        send_telegram(f"❌ Reporte mensual Adidas {month} FALLÓ al enviar: {exc}")
+        send_telegram(f"❌ Reporte mensual Adidas {month} FALLÓ al enviar AL CLIENTE: {exc}")
         raise
     resend_id = send_result.get("id") if isinstance(send_result, dict) else None
-    record_sent(month, resend_id)
+    record_month_log(SENT_LOG_PATH, month, {"sent_at": now_iso(), "resend_id": resend_id})
     print(json.dumps(json_safe({**summary, "status": "sent", "send_result": send_result}), ensure_ascii=False, indent=2))
     totals = report["totals"]
     send_telegram(
-        f"📧 Reporte mensual Adidas {month} enviado a {', '.join(config['recipient_emails'])}\n"
+        f"📧 Reporte mensual Adidas {month} enviado AL CLIENTE ({', '.join(config['recipient_emails'])})\n"
         f"Ventas: {totals.get('ventas')} · Monto: ${money(totals.get('monto_total', 0))} · Anomalías: {totals.get('anomaly_count')}"
     )
     return 0
