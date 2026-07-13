@@ -67,7 +67,13 @@ def load_env(path: Path):
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        env[key.strip()] = value.strip()
+        key = key.strip()
+        if key.startswith("export "):
+            key = key[len("export "):].strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        env[key] = value
     return env
 
 
@@ -80,6 +86,22 @@ def getenv(env: dict, name: str, default=None):
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
+
+def stable_source_mtime_iso():
+    """Fallback `sourceGeneratedAt` used only when neither `status.json` nor the
+    Adidas snapshot carries its own `updated_at`. Must be stable across runs with
+    unchanged inputs: `sourceGeneratedAt` feeds the sha256 idempotency key (see
+    build_payload), so a wall-clock fallback like now_iso() would make every run
+    hash differently and silently defeat the replay/no-op guarantee. File mtimes
+    of the two source snapshots only change when their contents actually change,
+    so they make a stable substitute. Only falls back to now_iso() itself in the
+    (very unlikely) case where neither source file exists at all.
+    """
+    mtimes = [p.stat().st_mtime for p in (STATUS_PATH, ADIDAS_PATH) if p.exists()]
+    if not mtimes:
+        return now_iso()
+    return datetime.fromtimestamp(max(mtimes), tz=timezone.utc).isoformat()
 
 
 def canonical_json(value):
@@ -197,6 +219,12 @@ def build_machines_input(status, adidas, meta_rows, views_by_slug, slot_mapping,
 
     machines_input = []
     for meta in meta_rows:
+        if not meta.get("machine_id"):
+            print(
+                f"warning: skipping machine metadata row with missing machine_id: {meta!r}",
+                file=sys.stderr,
+            )
+            continue
         machine_id = str(meta["machine_id"])
         station_id = meta.get("station_id")
         status_row = status_by_id.get(machine_id)
@@ -277,7 +305,9 @@ def build_payload():
     operations_payload = load_json(OPERATIONS_PATH, {}) or {}
 
     views_by_slug = {str(row.get("slug")): row for row in views_cache.get("views", []) if row.get("slug")}
-    fallback_generated_at = status.get("updated_at") or adidas.get("updated_at") or now_iso()
+    fallback_generated_at = (
+        status.get("updated_at") or adidas.get("updated_at") or stable_source_mtime_iso()
+    )
 
     machines = build_machines_input(status, adidas, meta_rows, views_by_slug, slot_mapping, fallback_generated_at)
     transactions = build_transactions_input(operations_payload)
@@ -302,7 +332,11 @@ def post_payload(base_url: str, secret: str, payload: dict, timeout: int = 60):
 
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            body = json.loads(response.read().decode("utf-8"))
+            body_text = response.read().decode("utf-8", errors="replace")
+            try:
+                body = json.loads(body_text)
+            except json.JSONDecodeError:
+                body = {"raw": body_text}
             return response.status, body
     except urllib.error.HTTPError as error:
         body_text = error.read().decode("utf-8", errors="replace")
@@ -311,6 +345,14 @@ def post_payload(base_url: str, secret: str, payload: dict, timeout: int = 60):
         except json.JSONDecodeError:
             body = {"raw": body_text}
         return error.code, body
+    except urllib.error.URLError as error:
+        # Broader than HTTPError (which is itself a URLError subclass and is
+        # caught above so its HTTP-specific body parsing still runs first):
+        # covers connection-refused, DNS failure, and timeouts, none of which
+        # produce an HTTP response to read a body from. Surface the same
+        # ok/error/details JSON shape the Ballbox endpoint itself uses instead
+        # of letting a raw traceback escape from an unattended import job.
+        return None, {"ok": False, "error": "REQUEST_FAILED", "details": str(error.reason)}
 
 
 def main():

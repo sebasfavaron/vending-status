@@ -8,8 +8,11 @@ Run with:
     python3 -m unittest tests/test_export_ballbox_import.py -v
 """
 import sys
+import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = ROOT / "scripts"
@@ -17,6 +20,7 @@ for path in (str(SCRIPTS_DIR), str(ROOT)):
     if path not in sys.path:
         sys.path.insert(0, path)
 
+import export_ballbox_import  # noqa: E402
 from export_ballbox_import import (  # noqa: E402
     build_inventory_input,
     build_machines_input,
@@ -24,8 +28,11 @@ from export_ballbox_import import (  # noqa: E402
     canonical_json,
     is_door_open,
     is_online,
+    load_env,
     pick_occurred_at,
+    post_payload,
     sha256_hex,
+    stable_source_mtime_iso,
     to_price_minor,
 )
 
@@ -219,6 +226,116 @@ class InventoryInputTests(unittest.TestCase):
         self.assertIsNone(slot["currency"])
 
 
+class LoadEnvTests(unittest.TestCase):
+    def _write_env(self, contents: str) -> Path:
+        tmp_dir = Path(tempfile.mkdtemp())
+        env_path = tmp_dir / ".env"
+        env_path.write_text(contents)
+        return env_path
+
+    def test_strips_surrounding_double_quotes(self):
+        env_path = self._write_env('BALLBOX_MACHINE_DATA_SHARED_SECRET="abc123"\n')
+        env = load_env(env_path)
+        self.assertEqual(env["BALLBOX_MACHINE_DATA_SHARED_SECRET"], "abc123")
+
+    def test_strips_surrounding_single_quotes(self):
+        env_path = self._write_env("BALLBOX_BASE_URL='http://localhost:3000'\n")
+        env = load_env(env_path)
+        self.assertEqual(env["BALLBOX_BASE_URL"], "http://localhost:3000")
+
+    def test_strips_export_prefix(self):
+        env_path = self._write_env("export BALLBOX_BASE_URL=http://localhost:3000\n")
+        env = load_env(env_path)
+        self.assertEqual(env["BALLBOX_BASE_URL"], "http://localhost:3000")
+        self.assertNotIn("export BALLBOX_BASE_URL", env)
+
+    def test_preserves_values_with_extra_equals_signs(self):
+        env_path = self._write_env("SOME_TOKEN=a=b=c\n")
+        env = load_env(env_path)
+        self.assertEqual(env["SOME_TOKEN"], "a=b=c")
+
+    def test_unquoted_value_unaffected(self):
+        env_path = self._write_env("PLAIN=value\n")
+        env = load_env(env_path)
+        self.assertEqual(env["PLAIN"], "value")
+
+    def test_still_skips_comments_and_blank_lines(self):
+        env_path = self._write_env("# a comment\n\nKEY=value\n")
+        env = load_env(env_path)
+        self.assertEqual(env, {"KEY": "value"})
+
+
+class StableFallbackGeneratedAtTests(unittest.TestCase):
+    def test_stable_across_repeated_calls_when_files_unchanged(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        status_path = tmp_dir / "status.json"
+        adidas_path = tmp_dir / "adidas.json"
+        status_path.write_text("{}")
+        adidas_path.write_text("{}")
+
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", status_path), mock.patch.object(
+            export_ballbox_import, "ADIDAS_PATH", adidas_path
+        ):
+            first = stable_source_mtime_iso()
+            second = stable_source_mtime_iso()
+
+        # Same source files, unchanged mtimes -> identical fallback timestamp
+        # across repeated calls, unlike the previous now_iso() fallback (which
+        # changed every call and silently broke the idempotency key).
+        self.assertEqual(first, second)
+
+    def test_falls_back_to_now_iso_when_no_source_files_exist(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        missing_status = tmp_dir / "missing_status.json"
+        missing_adidas = tmp_dir / "missing_adidas.json"
+
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", missing_status), mock.patch.object(
+            export_ballbox_import, "ADIDAS_PATH", missing_adidas
+        ):
+            value = stable_source_mtime_iso()
+
+        self.assertTrue(value)  # still produces a usable ISO timestamp, doesn't crash
+
+
+class PostPayloadTests(unittest.TestCase):
+    def test_url_error_returns_clean_error_tuple_instead_of_raising(self):
+        with mock.patch(
+            "export_ballbox_import.urllib.request.urlopen",
+            side_effect=urllib.error.URLError("Connection refused"),
+        ):
+            status, body = post_payload("http://localhost:3000", "secret", {"a": 1})
+
+        self.assertIsNone(status)
+        self.assertFalse(body.get("ok"))
+        self.assertIn("Connection refused", body.get("details", ""))
+
+    def test_success_with_non_json_body_falls_back_to_raw(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = b"not json"
+        response.status = 200
+
+        with mock.patch("export_ballbox_import.urllib.request.urlopen", return_value=response):
+            status, body = post_payload("http://localhost:3000", "secret", {"a": 1})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body, {"raw": "not json"})
+
+    def test_success_with_json_body_is_parsed(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = b'{"ok": true, "importRunId": "abc"}'
+        response.status = 200
+
+        with mock.patch("export_ballbox_import.urllib.request.urlopen", return_value=response):
+            status, body = post_payload("http://localhost:3000", "secret", {"a": 1})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body, {"ok": True, "importRunId": "abc"})
+
+
 class MachinesInputTests(unittest.TestCase):
     def test_emits_a_row_even_when_ballbox_link_is_unknown_here(self):
         # The exporter never checks whether Ballbox has a MachineExternalLink for
@@ -240,6 +357,24 @@ class MachinesInputTests(unittest.TestCase):
         self.assertEqual(machines[0]["externalStationId"], "fake_unknown_station")
         self.assertNotIn("status", machines[0])
         self.assertNotIn("inventory", machines[0])
+
+    def test_skips_meta_row_missing_machine_id_without_crashing(self):
+        meta_rows = [
+            {"station_id": "fake_station_missing_id", "slug": "fake-slug-bad"},
+            {"machine_id": "fake_machine_ok", "station_id": "fake_station_ok", "slug": "fake-slug-ok"},
+        ]
+
+        machines = build_machines_input(
+            status={"machines": []},
+            adidas={},
+            meta_rows=meta_rows,
+            views_by_slug={},
+            slot_mapping={},
+            fallback_generated_at="2026-07-01T00:00:00.000Z",
+        )
+
+        self.assertEqual(len(machines), 1)
+        self.assertEqual(machines[0]["externalMachineId"], "fake_machine_ok")
 
     def test_omits_external_station_id_when_metadata_has_none(self):
         meta_rows = [{"machine_id": "fake_machine_no_station", "slug": "fake-slug"}]
