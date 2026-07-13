@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ballbox — análisis unificado de hardware para signage</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: #101c2e;
+      --panel-2: #14243a;
+      --line: #263c58;
+      --text: #edf5ff;
+      --muted: #9eb0c8;
+      --blue: #55a7ff;
+      --cyan: #55e4d4;
+      --green: #67e08a;
+      --amber: #ffc766;
+      --red: #ff7d83;
+      --shadow: 0 18px 45px rgba(0,0,0,.24);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(85,167,255,.18), transparent 34rem),
+        radial-gradient(circle at 90% 10%, rgba(85,228,212,.11), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 54px 0 24px; }
+    .eyebrow { color: var(--cyan); text-transform: uppercase; letter-spacing: .13em; font-size: 12px; font-weight: 800; }
+    h1 { margin: 8px 0 12px; font-size: clamp(34px, 6vw, 68px); line-height: .98; letter-spacing: -.055em; max-width: 900px; }
+    .lead { max-width: 820px; color: var(--muted); font-size: 18px; margin: 0; }
+    .stamp { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .pill { border: 1px solid var(--line); background: rgba(16,28,46,.78); border-radius: 999px; padding: 7px 11px; color: var(--muted); font-size: 12px; }
+    .pill.good { color: var(--green); border-color: rgba(103,224,138,.35); }
+    .pill.warn { color: var(--amber); border-color: rgba(255,199,102,.35); }
+    nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(16px); background: rgba(8,17,31,.82); border-block: 1px solid rgba(38,60,88,.7); }
+    nav .wrap { display: flex; gap: 6px; overflow-x: auto; padding: 9px 0; }
+    nav a { white-space: nowrap; color: var(--muted); padding: 7px 10px; border-radius: 9px; font-size: 13px; font-weight: 700; }
+    nav a:hover { background: var(--panel); color: var(--text); text-decoration: none; }
+    main { padding: 28px 0 72px; }
+    section { scroll-margin-top: 70px; margin: 28px 0 44px; }
+    h2 { margin: 0 0 14px; font-size: clamp(25px, 4vw, 38px); letter-spacing: -.035em; }
+    h3 { margin: 0 0 8px; font-size: 18px; }
+    .sub { color: var(--muted); margin: -5px 0 18px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .card { grid-column: span 4; border: 1px solid var(--line); background: linear-gradient(145deg, rgba(20,36,58,.96), rgba(13,25,42,.96)); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+    .card.wide { grid-column: span 8; }
+    .card.full { grid-column: 1 / -1; }
+    .card.half { grid-column: span 6; }
+    .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
+    .metric { font-size: clamp(28px, 4vw, 47px); font-weight: 850; letter-spacing: -.05em; line-height: 1; margin: 9px 0 7px; }
+    .metric.green { color: var(--green); }
+    .metric.blue { color: var(--blue); }
+    .metric.amber { color: var(--amber); }
+    .note { color: var(--muted); font-size: 13px; }
+    .verdict { border-left: 4px solid var(--green); }
+    .controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
+    label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 750; }
+    input { width: 140px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #091525; color: var(--text); font: inherit; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; background: rgba(9,21,37,.48); }
+    th, td { padding: 13px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; background: rgba(20,36,58,.74); }
+    tr:last-child td { border-bottom: 0; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+    .status.pass { color: var(--green); background: rgba(103,224,138,.11); }
+    .status.pending { color: var(--amber); background: rgba(255,199,102,.11); }
+    .status.fail { color: var(--red); background: rgba(255,125,131,.11); }
+    .bar-chart { display: grid; gap: 14px; margin-top: 18px; }
+    .bar-row { display: grid; grid-template-columns: 180px 1fr 120px; gap: 12px; align-items: center; }
+    .bar-label { font-size: 13px; font-weight: 750; }
+    .bar-track { height: 14px; background: #08111f; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+    .bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--cyan)); width: 0; transition: width .35s ease; }
+    .bar.onn { background: linear-gradient(90deg, #42ce75, #6fedb0); }
+    .bar-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+    ul.clean { margin: 10px 0 0; padding-left: 20px; }
+    ul.clean li { margin: 7px 0; }
+    .callout { border: 1px solid rgba(255,199,102,.32); background: rgba(255,199,102,.08); border-radius: 14px; padding: 15px 17px; color: #ffe5b0; }
+    .source-list { columns: 2; column-gap: 34px; padding-left: 20px; }
+    .source-list li { break-inside: avoid; margin: 8px 0; color: var(--muted); }
+    footer { border-top: 1px solid var(--line); padding: 24px 0 46px; color: var(--muted); font-size: 12px; }
+    code { background: rgba(8,17,31,.8); border: 1px solid var(--line); padding: 2px 5px; border-radius: 6px; }
+    @media (max-width: 850px) {
+      .card, .card.wide, .card.half { grid-column: 1 / -1; }
+      .bar-row { grid-template-columns: 1fr; gap: 6px; }
+      .bar-value { text-align: left; }
+      .source-list { columns: 1; }
+    }
+    @media print {
+      body { background: white; color: #111; }
+      nav, .controls { display: none; }
+      .card, table { background: white; box-shadow: none; }
+      .card, .table-wrap, th, td { border-color: #bbb; }
+      .muted, .note, .sub, .lead { color: #444; }
+      a { color: #0645ad; }
+    }
+  </style>
+</head>
+<body>
+<header class="wrap">
+  <div class="eyebrow">Ballbox · T-027 · hardware signage</div>
+  <h1>Análisis unificado de precios</h1>
+  <p class="lead">Raspberry Pi 4 versus ONN/TV Box para una flota inicial. Costos, partes, stock, importación, evidencia real y gates antes de comprar el lote.</p>
+  <div class="stamp">
+    <span class="pill">Precios observados: 13 jul 2026</span>
+    <span class="pill">Base: 10 unidades</span>
+    <span class="pill">FX oficial venta: ARS 1.510/USD</span>
+    <span class="pill good">Techo TV Box: USD 120 landed</span>
+    <span class="pill warn">Stock de lote aún no confirmado</span>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <a href="#resumen">Resumen</a>
+    <a href="#comparador">Comparador</a>
+    <a href="#rpi">RPi 4</a>
+    <a href="#tvbox">ONN / TV Box</a>
+    <a href="#storage">SD</a>
+    <a href="#termica">Térmica</a>
+    <a href="#importacion">Importación</a>
+    <a href="#gate">Gate</a>
+    <a href="#fuentes">Fuentes</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section id="resumen">
+    <h2>Decisión actual</h2>
+    <div class="grid">
+      <article class="card verdict wide">
+        <div class="label">Orden recomendado</div>
+        <div class="metric green">Probar ONN primero</div>
+        <p>ONN ya pasó playback nativo, V2, rotación y offline. Falta la prueba decisiva: <strong>device-owner + lock-task + reboot/power recovery + burn-in</strong> sobre una unidad reseteable y retornable.</p>
+        <p class="note">Si pasa, reemplaza la Pi en el lote. Si falla strong kiosk, se devuelve; la Pi queda como fallback plenamente controlado.</p>
+      </article>
+      <article class="card">
+        <div class="label">ONN local · unidad</div>
+        <div class="metric green" data-money="onnUnit">ARS 97.999</div>
+        <div class="note">2GB/8GB · listing local inmediato</div>
+      </article>
+      <article class="card">
+        <div class="label">RPi local · unidad</div>
+        <div class="metric blue" data-money="piUnit">ARS 314.798</div>
+        <div class="note">4GB + PSU + SD32 + case aluminio + HDMI</div>
+      </article>
+      <article class="card">
+        <div class="label">Ahorro potencial · 10</div>
+        <div class="metric green" data-money="savings">ARS 2.167.990</div>
+        <div class="note"><span data-percent="savingsPct">68,9%</span> menos hardware versus Pi</div>
+      </article>
+    </div>
+  </section>
+
+  <section id="comparador">
+    <h2>Comparador ajustable</h2>
+    <p class="sub">Cambia cantidad o dólar de referencia. Precios base permanecen en ARS.</p>
+    <div class="card full">
+      <div class="controls">
+        <label>Cantidad
+          <input id="qty" type="number" min="1" max="500" value="10">
+        </label>
+        <label>ARS por USD
+          <input id="fx" type="number" min="1" value="1510">
+        </label>
+        <label>ONN local ARS/u
+          <input id="onnPrice" type="number" min="1" value="97999">
+        </label>
+        <label>RPi kit ARS/u
+          <input id="piPrice" type="number" min="1" value="314798">
+        </label>
+      </div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">ONN local</div>
+          <div class="bar-track"><div class="bar onn" id="barOnn"></div></div>
+          <div class="bar-value" id="barOnnValue"></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Raspberry Pi 4 kit</div>
+          <div class="bar-track"><div class="bar" id="barPi"></div></div>
+          <div class="bar-value" id="barPiValue"></div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:18px">
+        <div class="card">
+          <div class="label">ONN total</div>
+          <div class="metric green" id="onnTotal"></div>
+          <div class="note" id="onnUsd"></div>
+        </div>
+        <div class="card">
+          <div class="label">Pi total</div>
+          <div class="metric blue" id="piTotal"></div>
+          <div class="note" id="piUsd"></div>
+        </div>
+        <div class="card">
+          <div class="label">Diferencia</div>
+          <div class="metric amber" id="savingTotal"></div>
+          <div class="note" id="savingPct"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="rpi">
+    <h2>Raspberry Pi 4 — BOM local</h2>
+    <p class="sub">Configuración conservadora ya decidida: 4GB, SD 32GB y gabinete pasivo de aluminio.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Parte</th><th>Proveedor/base</th><th>Estado</th><th class="num">ARS/u</th><th class="num">ARS ×10</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Raspberry Pi 4B 4GB</strong></td><td><a href="https://www.siranet.com.ar/productos/raspberry-pi-4b-4gb-ram/">Siranet</a></td><td><span class="status pass">stock 59</span></td><td class="num">240.046</td><td class="num">2.400.460</td></tr>
+          <tr><td>Fuente oficial fija 5V/3A USB-C</td><td>Siranet</td><td><span class="status pass">stock 210</span></td><td class="num">20.500</td><td class="num">205.000</td></tr>
+          <tr><td>microSD SanDisk 32GB A1</td><td><a href="https://www.mercadolibre.com.ar/memoria-micro-sd-sandisk-ultra-32-gb-clase-10-uhs-i-a1-100-mb-s-adaptador-sd-full-hd-celular-camara-tablet-drone-consola-nintendo-switch-dashcam-videovigilancia-alto-rendimiento/p/MLA67718357">MercadoLibre</a></td><td><span class="status pending">cantidad a confirmar</span></td><td class="num">28.999</td><td class="num">289.990</td></tr>
+          <tr><td>Gabinete aluminio pasivo/disipador</td><td><a href="https://www.elemon.com.ar/products/detail/id/144">Elemon R5261</a></td><td><span class="status pass">stock 11</span></td><td class="num">15.303</td><td class="num">153.030</td></tr>
+          <tr><td>Cable micro-HDMI → HDMI 1m</td><td><a href="https://www.mercadolibre.com.ar/cable-micro-hdmi-a-hdmi-1m-negro-ccstrade-para-raspberry-pi4-pi5/p/MLA44319544">MercadoLibre</a></td><td><span class="status pending">cantidad a confirmar</span></td><td class="num">9.950</td><td class="num">99.500</td></tr>
+          <tr><td><strong>Total kit</strong></td><td>Mixto local</td><td></td><td class="num"><strong>314.798</strong></td><td class="num"><strong>3.147.980</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <article class="card half">
+        <h3>Comparación de placa</h3>
+        <ul class="clean">
+          <li>Siranet: ARS 240.046, stock 59; ~ARS 216.041 si aplica 10% transferencia.</li>
+          <li>MercadoLibre: ARS 249.990, stock publicado.</li>
+          <li>Elemon: ~ARS 219.314 IVA incluido, pero <strong>stock 0</strong>.</li>
+        </ul>
+      </article>
+      <article class="card half">
+        <h3>Descuento posible</h3>
+        <p>Si Siranet aplica 10% por transferencia sobre placa y fuente, el kit baja aproximadamente a <strong>ARS 288.743/u</strong>, o <strong>ARS 2.887.434</strong> por diez.</p>
+        <p class="note">No usar como precio cerrado hasta cotización por 10 unidades.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="tvbox">
+    <h2>ONN y TV boxes</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Modelo</th><th>Precio observado</th><th>Partes</th><th>Validación Ballbox</th><th>Veredicto</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong><a href="https://www.mercadolibre.com.ar/onn-4k-tv-box-streaming-google-tv-control-remoto-por-voz/up/MLAU4082719425">ONN 4K 2GB/8GB local</a></strong></td>
+            <td>ARS 97.999 (~USD 65)</td>
+            <td>Sin SD/case/fan; confirmar con vendedor que incluya fuente, cable y control</td>
+            <td><span class="status pass">playback/V2/rotación/offline</span><br><span class="status pending">strong kiosk pendiente</span></td>
+            <td><strong>Candidato #1</strong></td>
+          </tr>
+          <tr>
+            <td>ONN 4K Plus 2GB/16GB</td>
+            <td>USD 39,88 USA; landed estimado USD 65–85</td>
+            <td>Kit cerrado; sin SD/case</td>
+            <td><span class="status pending">modelo exacto no probado</span></td>
+            <td>Import candidato</td>
+          </tr>
+          <tr>
+            <td>ONN 4K Pro 3GB/32GB/Ethernet</td>
+            <td>USD 59,88 USA; landed estimado USD 90–115</td>
+            <td>Kit cerrado + Ethernet; fuente propia probable</td>
+            <td><span class="status pending">no probado</span></td>
+            <td>Dentro del techo; más robusto</td>
+          </tr>
+          <tr>
+            <td>Ugoos X4Q Extra 4GB/128GB</td>
+            <td>~ARS 350.000 local</td>
+            <td>AOSP Android 11, Ethernet</td>
+            <td><span class="status pending">device-owner no probado</span></td>
+            <td><span class="status fail">sobre USD 120</span></td>
+          </tr>
+          <tr>
+            <td>T95Z Plus RK3566</td>
+            <td>USD 42–73 internacional</td>
+            <td>AOSP Android 11/12; whitebox</td>
+            <td><span class="status pending">no probado</span></td>
+            <td>Local sin stock; riesgo de lote</td>
+          </tr>
+          <tr>
+            <td>MXQ “8K/Android 13” comprado</td>
+            <td>ARS 37.000</td>
+            <td>Specs falsas</td>
+            <td><span class="status fail">RK3228A/~1GB/Android ~7.1/sin ADB</span></td>
+            <td><span class="status fail">NO-GO</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout" style="margin-top:14px"><strong>Power desde el TV:</strong> posible en ONN si el puerto entrega al menos 5V/1A, pero no se asume. Se valida 2 horas + 5 ciclos. Si falla, se usa la fuente incluida; no invalida un dispositivo debajo de USD 120.</div>
+  </section>
+
+  <section id="storage">
+    <h2>16GB vs 32GB</h2>
+    <div class="grid">
+      <article class="card">
+        <div class="label">SanDisk 16GB A1</div>
+        <div class="metric">ARS 22.999</div>
+        <div class="note">Alcanza técnicamente; margen/clonado más ajustado.</div>
+      </article>
+      <article class="card verdict">
+        <div class="label">SanDisk 32GB A1</div>
+        <div class="metric green">ARS 28.999</div>
+        <div class="note">Elegida. Diferencia SanDisk: ARS 6.000/u.</div>
+      </article>
+      <article class="card">
+        <div class="label">Lexar 32GB</div>
+        <div class="metric">ARS 21.799</div>
+        <div class="note">Incluso menor que SanDisk 16GB; validar SKU/vendedor.</div>
+      </article>
+      <article class="card full">
+        <h3>Por qué 32GB</h3>
+        <p>La Pi de prueba demostró que 16GB alcanza: ~7,2GB usados y layout 10GB root + 4,1GB persistente. Pero 32GB reduce riesgo de diferencias físicas entre tarjetas “16GB”, simplifica golden image y deja margen para cache, logs y updates. El costo extra SanDisk es solo <strong>ARS 60.000 por diez</strong>; con Lexar puede no existir.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="termica">
+    <h2>Térmica y gabinete</h2>
+    <div class="grid">
+      <article class="card">
+        <div class="label">Carga real TV encendida</div>
+        <div class="metric green">60,3°C máx.</div>
+        <div class="note">43m30s · 4K30 · bare board · sin heatsink/fan</div>
+      </article>
+      <article class="card">
+        <div class="label">Throttle real</div>
+        <div class="metric green">0x0</div>
+        <div class="note">Ninguna muestra mostró throttling.</div>
+      </article>
+      <article class="card">
+        <div class="label">Stress artificial</div>
+        <div class="metric amber">83,7°C</div>
+        <div class="note">All-core stress; throttling. No representa signage.</div>
+      </article>
+      <article class="card full verdict">
+        <h3>Decisión</h3>
+        <p>Fan activo no requerido por la evidencia. Se eligió <strong>gabinete de aluminio pasivo/disipador</strong> por poca diferencia de precio, protección y margen térmico, sin agregar una parte móvil.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="importacion">
+    <h2>Local vs internacional</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Escenario</th><th class="num">Unidad</th><th class="num">10</th><th>Lectura</th></tr></thead>
+        <tbody>
+          <tr><td>RPi kit local actual</td><td class="num">ARS 314.798 / USD 208</td><td class="num">ARS 3.147.980</td><td>Stock local parcial confirmado; garantía simple.</td></tr>
+          <tr><td>RPi CanaKit internacional</td><td class="num">USD 169,95 FOB</td><td class="num">USD 1.699,50 FOB</td><td>Landed económico estimado USD 235–247/u: pierde contra local.</td></tr>
+          <tr><td>ONN local</td><td class="num">ARS 97.999 / USD 65</td><td class="num">ARS 979.990</td><td>Mejor precio/riesgo si hay 10 del mismo SKU.</td></tr>
+          <tr><td>ONN 4K Plus importado</td><td class="num">USD 65–85 landed estimado</td><td class="num">USD 650–850</td><td>Puede competir; requiere cotización comercial real.</td></tr>
+          <tr><td>ONN 4K Pro importado</td><td class="num">USD 90–115 landed estimado</td><td class="num">USD 900–1.150</td><td>Ethernet/32GB; debajo del techo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout" style="margin-top:14px"><strong>Restricción argentina:</strong> pequeños envíos permiten máximo 3 unidades de la misma especie por destinatario/año. Diez iguales requieren importación comercial; no usar una cuenta de courier personal como cotización del lote. Los landed de ONN son rangos de decisión, no cotización aduanera cerrada.</div>
+  </section>
+
+  <section id="gate">
+    <h2>Qué decide el lote</h2>
+    <div class="grid">
+      <article class="card wide">
+        <h3>ONN PASS</h3>
+        <ul class="clean">
+          <li>Specs reales, API ≥26, ADB sin root.</li>
+          <li>V2 READY + rotación + ≥1GB libre.</li>
+          <li><code>dpm set-device-owner</code> exitoso.</li>
+          <li><code>owner=yes locked=yes</code>.</li>
+          <li>Home/Back/Recents no escapan.</li>
+          <li>3 reboots + 3 cortes físicos.</li>
+          <li>15 minutos offline + reconnect.</li>
+          <li>Burn-in 24h; 48h preferido.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>ONN FAIL</h3>
+        <p>Capturar error, factory reset, verificar pantalla inicial y devolver. Sin root, bootloader unlock ni hacks de paquetes de seguridad.</p>
+      </article>
+      <article class="card full verdict">
+        <div class="label">Siguiente acción</div>
+        <p><strong>Conseguir una unidad retornable y ejecutar el runbook.</strong></p>
+        <p><a href="https://ballbox-first.emperor-ratio.ts.net/files/work/projects/ballbox-db/operations/onn-strong-kiosk-validation-runbook.md">Abrir runbook ONN strong-kiosk →</a></p>
+      </article>
+    </div>
+  </section>
+
+  <section id="fuentes">
+    <h2>Fuentes y confianza</h2>
+    <p class="sub">Precios web son foto del día; confirmar cotización, stock por diez, factura e IIBB antes de pagar.</p>
+    <div class="card full">
+      <ul class="source-list">
+        <li><a href="https://www.siranet.com.ar/productos/raspberry-pi-4b-4gb-ram/">Siranet — Pi 4B 4GB</a></li>
+        <li><a href="https://www.elemon.com.ar/products/detail/code/AR681RA545">Elemon — Pi 4B 4GB, stock 0</a></li>
+        <li><a href="https://www.elemon.com.ar/products/detail/id/144">Elemon — gabinete aluminio R5261</a></li>
+        <li><a href="https://www.mercadolibre.com.ar/raspberry-pi-4-model-b-2019-quad-core-64-bit-wifi-bt-4gb/p/MLA32617903">MercadoLibre — Pi 4B 4GB</a></li>
+        <li><a href="https://www.mercadolibre.com.ar/onn-4k-tv-box-streaming-google-tv-control-remoto-por-voz/up/MLAU4082719425">MercadoLibre — ONN 4K local</a></li>
+        <li><a href="https://www.walmart.com/ip/ONN-4K-PLUS/15557424949">Walmart — ONN 4K Plus</a></li>
+        <li><a href="https://www.walmart.com/ip/4K-PRO-STREAMING/18382213962">Walmart — ONN 4K Pro</a></li>
+        <li><a href="https://www.canakit.com/raspberry-pi-4-starter-kit.html">CanaKit — Pi 4 Starter Kit</a></li>
+        <li><a href="https://www.arca.gob.ar/envios-internacionales/courier/pequenios-envios.asp">ARCA — pequeños envíos</a></li>
+        <li><a href="https://dolarapi.com/v1/dolares/oficial">DolarAPI — oficial</a></li>
+        <li>Evidencia T-027: ONN real playback/offline/rotation.</li>
+        <li>Evidencia T-027: Pi real térmica/reboot/offline/power.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Ballbox · análisis interno · generado 2026-07-13 · Los rangos landed no reemplazan cotización de despachante/courier comercial.</div>
+</footer>
+
+<script>
+  const fmtArs = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+  const fmtUsd = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const els = Object.fromEntries(['qty','fx','onnPrice','piPrice','onnTotal','piTotal','savingTotal','savingPct','onnUsd','piUsd','barOnn','barPi','barOnnValue','barPiValue'].map(id => [id, document.getElementById(id)]));
+  function update() {
+    const qty = Math.max(1, Number(els.qty.value) || 1);
+    const fx = Math.max(1, Number(els.fx.value) || 1510);
+    const onn = Math.max(0, Number(els.onnPrice.value) || 0);
+    const pi = Math.max(0, Number(els.piPrice.value) || 0);
+    const onnTotal = onn * qty;
+    const piTotal = pi * qty;
+    const saving = piTotal - onnTotal;
+    const pct = piTotal ? saving / piTotal * 100 : 0;
+    const max = Math.max(onnTotal, piTotal, 1);
+    els.onnTotal.textContent = fmtArs.format(onnTotal);
+    els.piTotal.textContent = fmtArs.format(piTotal);
+    els.savingTotal.textContent = fmtArs.format(saving);
+    els.savingPct.textContent = `${pct.toLocaleString('es-AR', {maximumFractionDigits: 1})}% menos que Pi`;
+    els.onnUsd.textContent = `${fmtUsd.format(onnTotal / fx)} total · ${fmtUsd.format(onn / fx)}/u`;
+    els.piUsd.textContent = `${fmtUsd.format(piTotal / fx)} total · ${fmtUsd.format(pi / fx)}/u`;
+    els.barOnn.style.width = `${onnTotal / max * 100}%`;
+    els.barPi.style.width = `${piTotal / max * 100}%`;
+    els.barOnnValue.textContent = fmtArs.format(onnTotal);
+    els.barPiValue.textContent = fmtArs.format(piTotal);
+  }
+  ['input','change'].forEach(evt => document.querySelectorAll('input').forEach(input => input.addEventListener(evt, update)));
+  update();
+</script>
+</body>
+</html>

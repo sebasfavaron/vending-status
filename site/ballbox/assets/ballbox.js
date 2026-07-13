@@ -1,4 +1,4 @@
-const NAV=[['/ballbox/','Home'],['/ballbox/status/','Status'],['/ballbox/machines/','Machines'],['/ballbox/inventory/','Inventory'],['/ballbox/sales/','Sales'],['/ballbox/products/','Catalog'],['/ballbox/cloud/','Cloud'],['/ballbox/qa/','QA']];
+const NAV=[['/ballbox/','Home'],['/ballbox/status/','Status'],['/ballbox/machines/','Machines'],['/ballbox/inventory/','Inventory'],['/ballbox/sales/','Sales'],['/ballbox/products/','Catalog'],['/ballbox/cloud/','Cloud'],['/ballbox/reports/','Reports'],['/ballbox/qa/','QA']];
 function money(v){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(v||0))}
 function qs(name){return new URLSearchParams(location.search).get(name)||''}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}

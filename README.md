@@ -12,6 +12,16 @@ Ballbox portal + local control plane for OurVend and Beetwallet operations.
 - serves the local Flask control plane in `app.py`
 - publishes the static Ballbox portal from the local server
 
+## Published portal
+
+Canonical server surface:
+
+- `/ballbox/` — operational home
+- `/ballbox/reports/` — reports/documents index
+- `/ballbox/reports/hardware-signage/` — interactive RPi vs ONN/TV Box cost analysis
+
+Static source lives under `site/ballbox/` and is published by `scripts/refresh_ballbox_public.sh`.
+
 ## Local-only artifacts
 
 These stay out of git:
