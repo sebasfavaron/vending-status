@@ -2,6 +2,12 @@
 
 Ballbox portal + local control plane for OurVend and Beetwallet operations.
 
+> **The Ballbox portal is retired (2026-10-23).** Nobody outside used it. The Pi no longer runs
+> the hourly refresh (`scripts/refresh_ballbox_public.sh`), its Telegram Beetwallet warnings or
+> the Flask app, and nginx no longer serves `/ballbox/` (pi-config `docs/routines.md`). GitHub
+> Pages for this repo has been off since the move to the Pi. `site/` stays as history. The monthly
+> Adidas report (`.github/workflows/monthly-sales-report.yml`) is separate and still runs.
+
 ## What it does
 
 - fetches status from OurVend PC + H5 web apps
@@ -14,9 +20,9 @@ Ballbox portal + local control plane for OurVend and Beetwallet operations.
 - exports machine status/inventory/Beetwallet sales to Ballbox's canonical Postgres store
   (see `## Ballbox machine-data export (T-034)` below)
 
-## Published portal
+## Published portal (retired 2026-10-23)
 
-Canonical server surface:
+Surface it had:
 
 - `/ballbox/` — operational home
 - `/ballbox/reports/` — reports/documents index
