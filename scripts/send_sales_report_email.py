@@ -441,16 +441,11 @@ def build_segment_html(segments: list[dict], *, interactive: bool = True) -> str
             radius = "border-radius:999px 0 0 999px;"
         elif idx == total_segments - 1:
             radius = "border-radius:0 999px 999px 0;"
-        tab_index = " tabindex='0'" if interactive else ""
-        tooltip_html = ""
-        if interactive:
-            tooltip_html = (
-                f"<span class='bb-tip' style='display:none;visibility:hidden;max-height:0;overflow:hidden;opacity:0;position:absolute;left:50%;bottom:22px;transform:translate(-50%,-4px);background:#07111f;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 8px;font-size:11px;line-height:1.3;white-space:nowrap;pointer-events:none;z-index:999;box-shadow:0 8px 20px rgba(7,17,31,.28)'>{escape_html(tip)}</span>"
-            )
+        title_attr = f" title='{escape_html(tip)}'" if interactive else ""
         cells.append(
-            f"<span class='bb-seg'{tab_index} "
+            f"<span class='bb-seg'{title_attr} "
             f"style='display:block;float:left;width:{width:.2f}%;height:16px;background:{segment['color']};position:relative;{radius}'>"
-            f"{tooltip_html}&nbsp;"
+            "&nbsp;"
             "</span>"
         )
     return "<div class='bb-bar'><div class='bb-bar-inner'>" + "".join(cells) + "</div><div style='clear:both'></div></div>"
