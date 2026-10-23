@@ -1,0 +1,202 @@
+# Adidas monthly sales report. Replaces ballbox-monthly-sales-report.timer on the Pi
+# (pi-config systemd/user/), which ran scripts/run_monthly_sales_report.sh on the 1st at 07:00 ART.
+#
+# Two jobs:
+#   review  - fetches Beetwallet, renders the report, emails the review copy to
+#             review_recipient_emails (the config's internal list). Never reads recipient_emails.
+#   client  - the real send to recipient_emails. Runs only when send mode is "client", and only
+#             inside the "adidas-client" environment, which must have a required reviewer.
+#
+# Send mode: workflow_dispatch input `send_mode`, or for the cron the repo variable
+# MONTHLY_REPORT_SEND_MODE. Both default to "preview".
+#   render  - build the report only, no email (checks secrets and data)
+#   preview - render + review copy
+#   client  - preview + client send, waiting for approval in the "adidas-client" environment
+#
+# This repo is public: logs and artifacts are readable by anyone. Nothing here prints sales
+# figures or addresses, and the rendered HTML is never uploaded.
+#
+# Judgement date 2026-12-01: if the November run did not deliver, retire this workflow.
+
+name: Monthly sales report
+
+on:
+  schedule:
+    - cron: "0 10 1 * *" # 07:00 America/Argentina/Buenos_Aires
+  workflow_dispatch:
+    inputs:
+      send_mode:
+        description: "render | preview | client"
+        type: choice
+        options: [preview, render, client]
+        default: preview
+      month:
+        description: "YYYY-MM (empty = last completed month)"
+        type: string
+        default: ""
+      force:
+        description: "Resend a month that already went to the client"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: monthly-sales-report
+  cancel-in-progress: false
+
+env:
+  # Months up to 2026-09 were sent from the Pi; their send log is not in this repo's artifacts.
+  FIRST_ACTIONS_MONTH: "2026-10"
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      month: ${{ steps.month.outputs.month }}
+      mode: ${{ steps.mode.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - id: mode
+        env:
+          INPUT_MODE: ${{ inputs.send_mode }}
+          VAR_MODE: ${{ vars.MONTHLY_REPORT_SEND_MODE }}
+        run: |
+          mode="${INPUT_MODE:-${VAR_MODE:-preview}}"
+          case "$mode" in render|preview|client) ;; *) echo "::error::unknown send mode '$mode'"; exit 1 ;; esac
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "send mode: $mode"
+
+      - id: month
+        env:
+          INPUT_MONTH: ${{ inputs.month }}
+        run: |
+          month="${INPUT_MONTH:-$(TZ=America/Argentina/Buenos_Aires date -d "$(TZ=America/Argentina/Buenos_Aires date +%Y-%m-01) -1 day" +%Y-%m)}"
+          [[ "$month" =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] || { echo "::error::bad month '$month'"; exit 1; }
+          echo "month=$month" >> "$GITHUB_OUTPUT"
+          echo "month: $month"
+
+      # The three config files are gitignored (they hold the client's addresses and the slot
+      # mapping). They arrive as one base64 tarball secret; see README "Monthly report in Actions".
+      - name: Restore local config
+        env:
+          MONTHLY_REPORT_CONFIG_TGZ_B64: ${{ secrets.MONTHLY_REPORT_CONFIG_TGZ_B64 }}
+        run: |
+          [[ -n "$MONTHLY_REPORT_CONFIG_TGZ_B64" ]] || { echo "::error::missing secret MONTHLY_REPORT_CONFIG_TGZ_B64"; exit 1; }
+          printf '%s' "$MONTHLY_REPORT_CONFIG_TGZ_B64" | base64 -d | tar -xzf - config/monthly_sales_report.json config/adidas_slot_products.json config/machines_metadata.json
+          ls config/
+
+      - name: Fetch Beetwallet operations
+        env:
+          BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
+          BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+        run: python3 scripts/fetch_beetwallet_operations.py > /dev/null
+
+      - name: Render and send the review copy
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MONTHLY_REPORT_STATE_DIR: ${{ runner.temp }}/state
+          MONTH: ${{ steps.month.outputs.month }}
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          args=(--month "$MONTH" --preview-path "$RUNNER_TEMP/preview.html")
+          [[ "$MODE" == render ]] && args+=(--dry-run)
+          python3 scripts/send_monthly_sales_report.py "${args[@]}" > "$RUNNER_TEMP/review.json"
+          jq -r '"status=\(.status) month=\(.month) machines=\(.machine_count)"' "$RUNNER_TEMP/review.json"
+          status="$(jq -r .status "$RUNNER_TEMP/review.json")"
+          case "$MODE:$status" in
+            render:preview_built|preview:review_sent|client:review_sent) ;;
+            *) echo "::error::review step ended with status '$status'"; exit 1 ;;
+          esac
+
+      # Carries the "review sent" log to the client job; send_monthly_sales_report.py refuses a
+      # client send for a month without one. Contains only the month, a timestamp and a Resend id.
+      - if: steps.mode.outputs.mode != 'render'
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-report-reviewed-${{ steps.month.outputs.month }}
+          path: ${{ runner.temp }}/state/monthly_sales_report_reviewed.json
+          retention-days: 90
+
+  client:
+    needs: review
+    if: needs.review.outputs.mode == 'client'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: adidas-client
+    env:
+      MONTH: ${{ needs.review.outputs.month }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # Referencing a missing environment creates it with no protection, and this job would run
+      # unattended. Refuse unless a required reviewer is configured.
+      - name: Require a reviewer on the environment
+        run: |
+          n="$(gh api "repos/$GITHUB_REPOSITORY/environments/adidas-client" --jq '[.protection_rules[]? | select(.type == "required_reviewers")] | length')"
+          [[ "$n" -ge 1 ]] || { echo "::error::environment adidas-client has no required reviewer; refusing to email the client"; exit 1; }
+
+      - name: Refuse months sent from the Pi
+        if: ${{ !inputs.force }}
+        run: |
+          [[ ! "$MONTH" < "$FIRST_ACTIONS_MONTH" ]] || { echo "::error::$MONTH was sent from the Pi; pass force to resend"; exit 1; }
+
+      - name: Refuse a month already sent from Actions
+        if: ${{ !inputs.force }}
+        run: |
+          n="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=monthly-report-sent-$MONTH" --jq '[.artifacts[] | select(.expired == false)] | length')"
+          [[ "$n" -eq 0 ]] || { echo "::error::$MONTH was already sent to the client; pass force to resend"; exit 1; }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Restore local config
+        env:
+          MONTHLY_REPORT_CONFIG_TGZ_B64: ${{ secrets.MONTHLY_REPORT_CONFIG_TGZ_B64 }}
+        run: printf '%s' "$MONTHLY_REPORT_CONFIG_TGZ_B64" | base64 -d | tar -xzf - config/monthly_sales_report.json config/adidas_slot_products.json config/machines_metadata.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: monthly-report-reviewed-${{ needs.review.outputs.month }}
+          path: ${{ runner.temp }}/state
+
+      # Fetched again rather than passed as an artifact: an artifact here would be public.
+      - name: Fetch Beetwallet operations
+        env:
+          BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
+          BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+        run: python3 scripts/fetch_beetwallet_operations.py > /dev/null
+
+      - name: Send to the client
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MONTHLY_REPORT_STATE_DIR: ${{ runner.temp }}/state
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=(--month "$MONTH" --preview-path "$RUNNER_TEMP/preview.html" --confirm-send)
+          [[ "$FORCE" == true ]] && args+=(--force)
+          python3 scripts/send_monthly_sales_report.py "${args[@]}" > "$RUNNER_TEMP/send.json"
+          jq -r '"status=\(.status) month=\(.month) resend_id=\(.send_result.id // "-")"' "$RUNNER_TEMP/send.json"
+          [[ "$(jq -r .status "$RUNNER_TEMP/send.json")" == sent ]] || { echo "::error::client send did not happen"; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monthly-report-sent-${{ env.MONTH }}
+          path: ${{ runner.temp }}/state/monthly_sales_report_sent.json
+          retention-days: 90

@@ -80,6 +80,44 @@ Beetwallet amount anomaly warning:
 - later runs send Telegram only for new anomalous purchases
 - state: `/home/sebas/runtime/ballbox/state/beetwallet_non_round_amount_alert_state.json`
 
+## Monthly report in Actions
+
+`.github/workflows/monthly-sales-report.yml` sends the Adidas monthly report on the 1st at
+07:00 Buenos Aires (it replaces `ballbox-monthly-sales-report.timer` on the Pi).
+
+| send mode | what happens |
+|---|---|
+| `render` | fetch Beetwallet, build the report, no email |
+| `preview` (default) | render + review copy to `review_recipient_emails` |
+| `client` | preview, then the real send to `recipient_emails`, after approval in the `adidas-client` environment |
+
+The cron uses the repo variable `MONTHLY_REPORT_SEND_MODE`; a manual run uses the `send_mode`
+input. The client job refuses to run when `adidas-client` has no required reviewer, for a
+month before 2026-10 (sent from the Pi), and for a month that already has a
+`monthly-report-sent-YYYY-MM` artifact, unless `force` is set.
+
+Secrets: `BEET_USERNAME`, `BEET_PASSWORD`, `RESEND_API_KEY`, and `MONTHLY_REPORT_CONFIG_TGZ_B64`,
+a base64 tarball of `config/monthly_sales_report.json`, `config/adidas_slot_products.json` and
+`config/machines_metadata.json`. Rebuild it whenever one of those changes:
+
+```bash
+tar -czf - config/monthly_sales_report.json config/adidas_slot_products.json config/machines_metadata.json \
+  | base64 | gh secret set MONTHLY_REPORT_CONFIG_TGZ_B64 -R sebasfavaron/vending-status
+```
+
+Gotchas:
+
+- This repo is public, so run logs and artifacts are too. The workflow prints only status
+  lines and never uploads the rendered HTML; keep it that way.
+- The report does not need OurVend: without `site/ballbox/data/inventory.json` the product
+  names come from `config/adidas_slot_products.json`. The render was byte-identical with and
+  without it for 2026-08, 2026-09 and 2026-10.
+- GitHub turns off the cron of a public repo after 60 days without commits.
+- `scripts/fetch_beetwallet_operations.py` pages 10 operations per request; the full history
+  took 2.5 min on 2026-10-23.
+- The Telegram notices in `send_monthly_sales_report.py` are skipped on the runner (no
+  `telegram-notify` there). A failed run shows up as a GitHub Actions failure email instead.
+
 ## Action probes
 
 - screenshot probe:

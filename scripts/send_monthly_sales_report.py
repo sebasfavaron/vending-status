@@ -23,8 +23,11 @@ DEFAULT_SECRET_ENV_PATHS = [
 ]
 RESEND_API_URL = "https://api.resend.com/emails"
 TIMEOUT = 30
-SENT_LOG_PATH = Path("/home/sebas/runtime/ballbox/state/monthly_sales_report_sent.json")
-REVIEWED_LOG_PATH = Path("/home/sebas/runtime/ballbox/state/monthly_sales_report_reviewed.json")
+# The Pi keeps these logs on disk across months. GitHub Actions has no disk between runs, so
+# the workflow points this at a temp dir it fills from (and saves to) run artifacts.
+STATE_DIR = Path(os.environ.get("MONTHLY_REPORT_STATE_DIR") or "/home/sebas/runtime/ballbox/state")
+SENT_LOG_PATH = STATE_DIR / "monthly_sales_report_sent.json"
+REVIEWED_LOG_PATH = STATE_DIR / "monthly_sales_report_reviewed.json"
 TELEGRAM_NOTIFY = Path("/home/sebas/.agents/skills/telegram-notify/telegram-notify")
 
 PALETTE_TEAL = "#004f64"
@@ -494,7 +497,7 @@ def build_machine_mix_section(machine_report: dict[str, Any], *, interactive: bo
                 rows.append(
                     "<tr>"
                     f"<td style='padding:7px 8px;color:#486170;font-size:12px;white-space:nowrap'>{escape(day_label)}</td>"
-                    "<td style='padding:7px 8px;min-width:260px'><div class='bbm-gap-bar' style='height:16px;border-radius:999px;background:linear-gradient(90deg,#edf4f7 0%,#f9fbfc 100%);border:1px dashed rgba(0,79,100,.16)'></div></td>"
+                    "<td style='padding:7px 8px'><div class='bbm-gap-bar' style='height:16px;border-radius:999px;background:linear-gradient(90deg,#edf4f7 0%,#f9fbfc 100%);border:1px dashed rgba(0,79,100,.16)'></div></td>"
                     f"<td style='padding:7px 8px;color:#7c8f9b;font-size:12px;text-align:right;white-space:nowrap' colspan='2'>{escape(sales_label)}</td>"
                     "</tr>"
                 )
@@ -502,7 +505,7 @@ def build_machine_mix_section(machine_report: dict[str, Any], *, interactive: bo
             rows.append(
                 "<tr>"
                 f"<td style='padding:6px 8px;color:#0f2231;font-size:12px;white-space:nowrap'>{escape(day_row['day'][8:10])}</td>"
-                f"<td style='padding:6px 8px;min-width:260px'>{build_segment_html(day_row['segments'], interactive=interactive)}</td>"
+                f"<td style='padding:6px 8px'>{build_segment_html(day_row['segments'], interactive=interactive)}</td>"
                 f"<td style='padding:6px 8px;color:#486170;font-size:12px;text-align:right;white-space:nowrap'>{money(day_row['total_amount']) if day_row['total_amount'] else '—'}</td>"
                 f"<td style='padding:6px 8px;color:#486170;font-size:12px;text-align:right;white-space:nowrap'>{day_row['total_sales'] if day_row['total_sales'] else '—'}</td>"
                 "</tr>"
@@ -527,8 +530,8 @@ def build_machine_mix_section(machine_report: dict[str, Any], *, interactive: bo
             f"<td style='padding:0 16px 0 0'><div class='bbm-muted' style='font-size:12px;color:#486170'>Ventas</div><div class='bbm-strong' style='font-size:24px;font-weight:700;color:#0f2231'>{machine['total_sales']}</div></td>"
             f"<td><div class='bbm-muted' style='font-size:12px;color:#486170'>Monto</div><div class='bbm-strong' style='font-size:24px;font-weight:700;color:#0f2231'>{money(machine['total_amount'])}</div></td>"
             "</tr></table>"
-            "<table class='bbm-panel bbm-table' role='presentation' cellpadding='0' cellspacing='0' width='100%' style='border-collapse:collapse;border-spacing:0;background:#f7fafb;border:1px solid rgba(0,79,100,.08);border-radius:14px'>"
-            "<tr><th align='left' style='padding:8px;color:#486170;font-size:11px'>Día</th><th align='left' style='padding:8px;color:#486170;font-size:11px'>Mix por producto (% monto)</th><th align='right' style='padding:8px;color:#486170;font-size:11px'>Monto</th><th align='right' style='padding:8px;color:#486170;font-size:11px'>Ventas</th></tr>"
+            "<table class='bbm-panel bbm-table' role='presentation' cellpadding='0' cellspacing='0' width='100%' style='border-collapse:collapse;border-spacing:0;background:#f7fafb;border:1px solid rgba(0,79,100,.08);border-radius:14px;table-layout:fixed'>"
+            "<tr><th align='left' style='padding:8px;color:#486170;font-size:11px;width:12%'>Día</th><th align='left' style='padding:8px;color:#486170;font-size:11px;width:52%'>Mix por producto (% monto)</th><th align='right' style='padding:8px;color:#486170;font-size:11px;width:22%'>Monto</th><th align='right' style='padding:8px;color:#486170;font-size:11px;width:14%'>Ventas</th></tr>"
             + "".join(rows)
             + "</table>"
             "<div class='bbm-strong' style='margin:14px 0 8px 0;font-size:12px;font-weight:700;color:#0f2231'>Top productos del mes</div>"
@@ -581,11 +584,6 @@ def build_html_body(report: dict[str, Any], machine_report: dict[str, Any], clie
     machine_mix_section = build_machine_mix_section(machine_report, interactive=interactive)
     logo_html = f"<img src='{escape(logo_url)}' alt='Ballbox' width='170' style='display:block;width:170px;max-width:100%;height:auto;border:0;margin:0 0 18px 0' />" if logo_url else ""
     tooltip_css = ""
-    if interactive:
-        tooltip_css = """
-      .bb-tip::after { content:''; position:absolute; left:50%; top:100%; transform:translateX(-50%); border:6px solid transparent; border-top-color:#07111f; }
-      .bb-seg:hover .bb-tip, .bb-seg:focus .bb-tip { display:block !important; max-height:none !important; overflow:visible !important; opacity:1 !important; visibility:visible !important; transform:translate(-50%,-8px) !important; transition-delay:0s; }
-"""
     meta_color_scheme = ""
     dark_css = ""
     if dark_mode_css:
@@ -666,7 +664,7 @@ def build_html_body(report: dict[str, Any], machine_report: dict[str, Any], clie
 """.strip()
 
 
-def send_resend_email(api_key: str, *, sender_name: str, sender_email: str, reply_to: str, recipients: list[str], subject: str, text_body: str, html_body: str) -> dict[str, Any]:
+def send_resend_email(api_key: str, *, sender_name: str, sender_email: str, reply_to: str, recipients: list[str], subject: str, text_body: str, html_body: str, cc: list[str] | None = None) -> dict[str, Any]:
     payload = {
         "from": f"{sender_name} <{sender_email}>",
         "to": recipients,
@@ -676,6 +674,8 @@ def send_resend_email(api_key: str, *, sender_name: str, sender_email: str, repl
     }
     if reply_to:
         payload["reply_to"] = reply_to
+    if cc:
+        payload["cc"] = cc
     response = requests.post(
         RESEND_API_URL,
         headers={
@@ -746,7 +746,7 @@ def main() -> int:
 
     subject = build_subject(config["subject_prefix"], config["client_label"], month)
     text_body = build_text_body(report, config["client_label"])
-    preview_html = build_html_body(report, machine_report, config["client_label"], config["logo_url"], interactive=True, dark_mode_css=True)
+    preview_html = build_html_body(report, machine_report, config["client_label"], config["logo_url"], interactive=False, dark_mode_css=True)
     html_body = build_html_body(report, machine_report, config["client_label"], config["logo_url"], interactive=False, dark_mode_css=False)
     write_text(config["preview_path"], preview_html)
 
@@ -826,6 +826,7 @@ def main() -> int:
             subject=subject,
             text_body=text_body,
             html_body=html_body,
+            cc=config.get("client_send_cc_emails") or None,
         )
     except Exception as exc:
         send_telegram(f"❌ Reporte mensual Adidas {month} FALLÓ al enviar AL CLIENTE: {exc}")
@@ -834,8 +835,9 @@ def main() -> int:
     record_month_log(SENT_LOG_PATH, month, {"sent_at": now_iso(), "resend_id": resend_id})
     print(json.dumps(json_safe({**summary, "status": "sent", "send_result": send_result}), ensure_ascii=False, indent=2))
     totals = report["totals"]
+    cc_note = f" (cc: {', '.join(config['client_send_cc_emails'])})" if config.get("client_send_cc_emails") else ""
     send_telegram(
-        f"📧 Reporte mensual Adidas {month} enviado AL CLIENTE ({', '.join(config['recipient_emails'])})\n"
+        f"📧 Reporte mensual Adidas {month} enviado AL CLIENTE ({', '.join(config['recipient_emails'])}){cc_note}\n"
         f"Ventas: {totals.get('ventas')} · Monto: ${money(totals.get('monto_total', 0))} · Anomalías: {totals.get('anomaly_count')}"
     )
     return 0
