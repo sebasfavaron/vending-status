@@ -11,7 +11,11 @@ Contract this must match:
   /home/sebas/work/tasks/T-034/artifacts/INGESTION-CONTRACT-2026-07-13.md
 
 Usage:
-  python3 scripts/export_ballbox_import.py [--dry-run] [--pretty]
+  python3 scripts/export_ballbox_import.py [--dry-run] [--pretty] [--transactions-only] [--operations PATH]
+
+--transactions-only sends Beetwallet transactions with `machines: []`: Ballbox writes
+no status or inventory snapshot for it (run by scripts/run_ballbox_sales_feed.sh
+every 5 minutes; the full export runs every 6 hours).
 
 Env:
   BALLBOX_BASE_URL                     Ballbox base URL (default http://localhost:3000)
@@ -296,20 +300,23 @@ def build_transactions_input(operations_payload):
     return transactions_input
 
 
-def build_payload():
+def build_payload(transactions_only: bool = False, operations_path: Path = OPERATIONS_PATH):
     status = load_json(STATUS_PATH, {}) or {}
     adidas = load_json(ADIDAS_PATH, {}) or {}
-    meta_rows = load_json(MACHINES_META, []) or []
-    slot_mapping = load_json(SLOT_MAPPING_PATH, {}) or {}
-    views_cache = load_json(ADIDAS_VIEWS_CACHE, {}) or {}
-    operations_payload = load_json(OPERATIONS_PATH, {}) or {}
+    operations_payload = load_json(operations_path, {}) or {}
 
-    views_by_slug = {str(row.get("slug")): row for row in views_cache.get("views", []) if row.get("slug")}
     fallback_generated_at = (
         status.get("updated_at") or adidas.get("updated_at") or stable_source_mtime_iso()
     )
 
-    machines = build_machines_input(status, adidas, meta_rows, views_by_slug, slot_mapping, fallback_generated_at)
+    if transactions_only:
+        machines = []
+    else:
+        meta_rows = load_json(MACHINES_META, []) or []
+        slot_mapping = load_json(SLOT_MAPPING_PATH, {}) or {}
+        views_cache = load_json(ADIDAS_VIEWS_CACHE, {}) or {}
+        views_by_slug = {str(row.get("slug")): row for row in views_cache.get("views", []) if row.get("slug")}
+        machines = build_machines_input(status, adidas, meta_rows, views_by_slug, slot_mapping, fallback_generated_at)
     transactions = build_transactions_input(operations_payload)
 
     payload_without_key = {
@@ -359,13 +366,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true", help="Build the payload and print it, do not POST it.")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
+    parser.add_argument(
+        "--transactions-only",
+        action="store_true",
+        help="Send only Beetwallet transactions (machines: []): no status/inventory snapshot rows.",
+    )
+    parser.add_argument(
+        "--operations",
+        type=Path,
+        default=OPERATIONS_PATH,
+        help="Beetwallet operations file (default data/beetwallet_operations.json).",
+    )
     args = parser.parse_args()
 
     env = load_env(ENV_PATH)
     base_url = getenv(env, "BALLBOX_BASE_URL", DEFAULT_BALLBOX_BASE_URL)
     secret = getenv(env, "BALLBOX_MACHINE_DATA_SHARED_SECRET")
 
-    payload = build_payload()
+    payload = build_payload(transactions_only=args.transactions_only, operations_path=args.operations)
 
     if args.dry_run:
         indent = 2 if args.pretty else None

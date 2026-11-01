@@ -166,12 +166,23 @@ Full request/response contract:
 5. Use `--dry-run` (optionally with `--pretty`) to print the built payload without POSTing it,
    e.g. to eyeball it or diff it before wiring up a real run.
 
-### Schedule (proposed, not wired up yet)
+### Schedule
 
-Run alongside the existing `refresh_ballbox_public.sh` / `refresh_beetwallet.sh` pattern — e.g.
-add `python3 scripts/export_ballbox_import.py` as one more step in whichever cron/systemd timer
-already refreshes those local snapshots, after the OurVend/Beetwallet fetch steps and before (or
-instead of) publishing the static portal. Not installed as a real schedule by this task.
+`scripts/run_ballbox_sales_feed.sh`, run by `ballbox-sales-feed.timer` (pi-config
+`systemd/user/`) every 5 minutes:
+
+- every run: Beetwallet operations of the last 3 days into
+  `~/runtime/ballbox/state/beetwallet_operations_recent.json` (`BEET_OPERATIONS_OUT`), then
+  `export_ballbox_import.py --transactions-only --operations <that file>`. `machines` is empty,
+  so Ballbox writes no status or inventory snapshot; with no new sale the payload is the same
+  and Ballbox replays it;
+- every 6 hours (or `--full`): `fetch_status.py`, `build_adidas_snapshot.py`, all Beetwallet
+  operations into `data/beetwallet_operations.json`, and the full export.
+
+It does not send the amount-warning Telegram and does not publish the portal. The secret is
+read from `~/runtime/secrets/ballbox-machine-data.env` (`BALLBOX_MACHINE_DATA_SHARED_SECRET`,
+optional `BALLBOX_BASE_URL`, default `https://ballbox.app`); `BALLBOX_MACHINE_DATA_ENV`
+points somewhere else for a local test.
 
 ### Retries
 
