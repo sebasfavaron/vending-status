@@ -7,7 +7,8 @@
 # - Every 6 hours (or with --full): OurVend status + inventory, all Beetwallet operations
 #   (data/beetwallet_operations.json, also read by the monthly report) and the full export.
 #
-# It does not send the amount-warning Telegram and does not publish the old portal.
+# It does not send the amount-warning Telegram and does not publish the old portal. It sends one
+# Telegram when it starts failing and one when it recovers.
 # Secret: BALLBOX_MACHINE_DATA_SHARED_SECRET in ~/runtime/secrets/ballbox-machine-data.env.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -24,6 +25,25 @@ if ! flock -n 9; then
   echo "sales feed already running"
   exit 0
 fi
+
+# One Telegram when the feed starts failing and one when it recovers, not one per 5-minute run.
+# Without it, a dead feed shows only as the "data is old" banner to whoever opens Ventas en vivo.
+DOWN_FLAG="$STATE_DIR/sales-feed-down"
+TELEGRAM_NOTIFY="$HOME/.agents/skills/telegram-notify/telegram-notify"
+notify() { [[ -x "$TELEGRAM_NOTIFY" ]] && "$TELEGRAM_NOTIFY" send -- "$1" >/dev/null 2>&1 || true; }
+on_exit() {
+  local code=$?
+  if (( code != 0 )) && [[ ! -f "$DOWN_FLAG" ]]; then
+    date -Is > "$DOWN_FLAG"
+    notify "⚠️ Feed de ventas Ballbox falla (exit $code). Ventas en vivo deja de actualizarse. journalctl --user -u ballbox-sales-feed"
+  elif (( code == 0 )) && [[ -f "$DOWN_FLAG" ]]; then
+    notify "✅ Feed de ventas Ballbox volvió a andar (caído desde $(cat "$DOWN_FLAG"))."
+    rm -f "$DOWN_FLAG"
+  fi
+}
+trap on_exit EXIT
+# systemd's timeout sends TERM; turn it into an exit so the EXIT trap still runs.
+trap 'exit 143' TERM
 
 if [[ ! -f "$SECRET_FILE" ]]; then
   echo "missing $SECRET_FILE (BALLBOX_MACHINE_DATA_SHARED_SECRET); nothing sent" >&2
