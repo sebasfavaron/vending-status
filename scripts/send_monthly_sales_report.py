@@ -11,6 +11,7 @@ from typing import Any
 
 import requests
 
+from lessee import get_lessee, get_lessee_label
 from send_sales_report_email import build_segment_html, collect_sales_report
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,8 +141,8 @@ def load_config(path: Path) -> dict[str, Any]:
 
     return {
         "enabled": bool(config.get("enabled", False)),
-        "client": normalize_text(config.get("client") or "adidas"),
-        "client_label": normalize_text(config.get("client_label") or "Adidas"),
+        "lessee": normalize_text(get_lessee(config) or "adidas"),
+        "lessee_label": normalize_text(get_lessee_label(config) or "Adidas"),
         "sender_name": normalize_text(config.get("sender_name") or "Ballbox"),
         "sender_email": normalize_text(config.get("sender_email") or "communications@ballbox.app"),
         "reply_to": normalize_text(config.get("reply_to") or ""),
@@ -242,8 +243,8 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
             continue
         meta = by_station_id.get(row["station_id"]) or {}
         machine_id = normalize_text(meta.get("machine_id"))
-        client = normalize_text(meta.get("client"))
-        if config["client"] and client != config["client"]:
+        lessee = normalize_text(get_lessee(meta))
+        if config["lessee"] and lessee != config["lessee"]:
             continue
         ignore_key = (row["station_id"], row["slot"], int(round(row["amount"] * 100)))
         if ignore_key in ignored_index:
@@ -392,8 +393,8 @@ def classify_sales(config: dict[str, Any], month: str) -> dict[str, Any]:
     }
 
 
-def build_subject(prefix: str, client_label: str, month: str) -> str:
-    return f"{prefix} · {client_label}: resumen ventas {month}"
+def build_subject(prefix: str, lessee_label: str, month: str) -> str:
+    return f"{prefix} · {lessee_label}: resumen ventas {month}"
 
 
 def build_horizontal_chart(rows: list[dict[str, Any]], *, label_key: str, value_key: str, value_formatter, bar_color: str, detail_formatter=None) -> str:
@@ -456,10 +457,10 @@ def build_top_story_lines(report: dict[str, Any]) -> list[str]:
     return lines
 
 
-def build_text_body(report: dict[str, Any], client_label: str) -> str:
+def build_text_body(report: dict[str, Any], lessee_label: str) -> str:
     totals = report["totals"]
     lines = [
-        f"Resumen mensual de ventas — {client_label}",
+        f"Resumen mensual de ventas — {lessee_label}",
         "",
         f"Período: {report['month']}",
         f"Ventas: {totals['ventas']}",
@@ -554,7 +555,7 @@ def build_machine_mix_section(machine_report: dict[str, Any], *, interactive: bo
     )
 
 
-def build_html_body(report: dict[str, Any], machine_report: dict[str, Any], client_label: str, logo_url: str | None, *, interactive: bool = True, dark_mode_css: bool = True) -> str:
+def build_html_body(report: dict[str, Any], machine_report: dict[str, Any], lessee_label: str, logo_url: str | None, *, interactive: bool = True, dark_mode_css: bool = True) -> str:
     totals = report["totals"]
     top_story_lines = build_top_story_lines(report)
     preheader = " · ".join(top_story_lines[:3])
@@ -640,7 +641,7 @@ def build_html_body(report: dict[str, Any], machine_report: dict[str, Any], clie
               <td style="padding:32px 28px 18px 28px;background:radial-gradient(circle at top left, rgba(196,214,0,0.24), rgba(15,20,15,0) 40%), linear-gradient(180deg, #111711 0%, #0f140f 100%);">
                 {logo_html}
                 <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:rgba(196,214,0,0.16);border:1px solid rgba(196,214,0,0.25);color:#d7f53b;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Resumen mensual</div>
-                <h1 style="margin:18px 0 10px 0;font-size:32px;line-height:1.1;color:#ffffff;">Resumen de ventas {escape(client_label)}</h1>
+                <h1 style="margin:18px 0 10px 0;font-size:32px;line-height:1.1;color:#ffffff;">Resumen de ventas {escape(lessee_label)}</h1>
                 <p style="margin:0;font-size:16px;line-height:1.6;color:rgba(255,255,255,0.78);">Período {escape(report['month'])}</p>
               </td>
             </tr>
@@ -719,7 +720,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Build the preview only, no email, no state changes")
     parser.add_argument("--write-json", help="Write report JSON to path")
     parser.add_argument("--preview-path", help="Write HTML preview to this path")
-    parser.add_argument("--confirm-send", action="store_true", help="Send the REAL report to recipient_emails (the client). Default (no flag) only emails review_recipient_emails.")
+    parser.add_argument("--confirm-send", action="store_true", help="Send the REAL report to recipient_emails (the lessee). Default (no flag) only emails review_recipient_emails.")
     parser.add_argument("--force", action="store_true", help="Bypass the already-sent guard and the review-required guard")
     args = parser.parse_args()
 
@@ -738,7 +739,7 @@ def main() -> int:
         inventory_payload=inventory_payload,
         mapping_payload=mapping_payload,
         machines_meta=machines_meta,
-        target_client=config["client"],
+        target_lessee=config["lessee"],
         month_key=month,
     )
 
@@ -747,10 +748,10 @@ def main() -> int:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(json_safe(report), ensure_ascii=False, indent=2) + "\n")
 
-    subject = build_subject(config["subject_prefix"], config["client_label"], month)
-    text_body = build_text_body(report, config["client_label"])
-    preview_html = build_html_body(report, machine_report, config["client_label"], config["logo_url"], interactive=False, dark_mode_css=True)
-    html_body = build_html_body(report, machine_report, config["client_label"], config["logo_url"], interactive=False, dark_mode_css=False)
+    subject = build_subject(config["subject_prefix"], config["lessee_label"], month)
+    text_body = build_text_body(report, config["lessee_label"])
+    preview_html = build_html_body(report, machine_report, config["lessee_label"], config["logo_url"], interactive=False, dark_mode_css=True)
+    html_body = build_html_body(report, machine_report, config["lessee_label"], config["logo_url"], interactive=False, dark_mode_css=False)
     write_text(config["preview_path"], preview_html)
 
     summary = {

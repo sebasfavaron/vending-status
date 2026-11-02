@@ -7,6 +7,8 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from lessee import get_lessee, get_lessee_label
+
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -87,7 +89,7 @@ def normalize_text(value) -> str:
     return str(value or "").strip()
 
 
-def normalize_client(value) -> str:
+def normalize_lessee(value) -> str:
     return " ".join(normalize_text(value).lower().split())
 
 
@@ -216,8 +218,8 @@ def load_config(path: Path) -> dict:
         "reply_to": normalize_text(config.get("reply_to") or ""),
         "recipient_emails": [normalize_text(item) for item in config.get("recipient_emails") or [] if normalize_text(item)],
         "subject_prefix": normalize_text(config.get("subject_prefix") or "Ballbox"),
-        "client": normalize_text(config.get("client") or "adidas") or "adidas",
-        "client_label": normalize_text(config.get("client_label") or "Adidas") or "Adidas",
+        "lessee": normalize_text(get_lessee(config) or "adidas") or "adidas",
+        "lessee_label": normalize_text(get_lessee_label(config) or "Adidas") or "Adidas",
         "month": normalize_text(config.get("month") or "current") or "current",
         "operations_path": resolve_path(config.get("operations_path"), DEFAULT_OPERATIONS_PATH),
         "inventory_path": resolve_path(config.get("inventory_path"), DEFAULT_INVENTORY_PATH),
@@ -258,8 +260,8 @@ def build_ignored_sales_index(mapping_payload: dict) -> dict:
     return out
 
 
-def build_subject(prefix: str, client_label: str, month_key: str) -> str:
-    return f"{prefix} · {client_label}: ventas por máquina {month_key}"
+def build_subject(prefix: str, lessee_label: str, month_key: str) -> str:
+    return f"{prefix} · {lessee_label}: ventas por máquina {month_key}"
 
 
 def color_map(products: list[str]) -> dict:
@@ -303,12 +305,12 @@ def collapse_day_rows(day_rows: list[dict]) -> list[dict]:
     return collapsed
 
 
-def collect_sales_report(*, operations_payload: dict, inventory_payload: dict, mapping_payload: dict, machines_meta: list[dict], target_client: str, month_key: str) -> dict:
+def collect_sales_report(*, operations_payload: dict, inventory_payload: dict, mapping_payload: dict, machines_meta: list[dict], target_lessee: str, month_key: str) -> dict:
     product_index = build_product_index(inventory_payload, mapping_payload)
     ignored_sales = build_ignored_sales_index(mapping_payload)
-    client_norm = normalize_client(target_client)
+    lessee_norm = normalize_lessee(target_lessee)
     station_to_meta = {normalize_text(row.get("station_id")): row for row in machines_meta if row.get("station_id")}
-    machines = [row for row in machines_meta if normalize_client(row.get("client")) == client_norm]
+    machines = [row for row in machines_meta if normalize_lessee(get_lessee(row)) == lessee_norm]
     machine_by_id = {normalize_text(row.get("machine_id")): row for row in machines}
     days = []
     if month_key:
@@ -468,11 +470,11 @@ def build_segment_html(segments: list[dict], *, interactive: bool = True) -> str
     )
 
 
-def build_text_body(report: dict, client_label: str) -> str:
+def build_text_body(report: dict, lessee_label: str) -> str:
     lines = [
         f"Hola,",
         "",
-        f"Ventas por máquina · {client_label} · {report['month']}",
+        f"Ventas por máquina · {lessee_label} · {report['month']}",
         "",
         f"Ventas totales: {report['totals']['sales']}",
         f"Monto total: {money(report['totals']['amount'])}",
@@ -497,7 +499,7 @@ def build_text_body(report: dict, client_label: str) -> str:
     return "\n".join(lines)
 
 
-def build_html_body(report: dict, client_label: str, logo_url: str | None, *, interactive: bool = True, dark_mode_css: bool = True) -> str:
+def build_html_body(report: dict, lessee_label: str, logo_url: str | None, *, interactive: bool = True, dark_mode_css: bool = True) -> str:
     legend_items = []
     for product, color in sorted(report["product_colors"].items(), key=lambda item: item[0].lower()):
         legend_items.append(
@@ -616,7 +618,7 @@ def build_html_body(report: dict, client_label: str, logo_url: str | None, *, in
     <div style='max-width:960px;margin:0 auto'>
       <div class='bb-shell' style='background:#ffffff;border:1px solid rgba(0,79,100,.12);border-radius:24px;padding:24px 24px 12px 24px;margin:0 0 16px 0;box-shadow:0 24px 70px -52px rgba(176,217,0,.28)'>
         {logo_html}
-        <div class='bb-title' style='font-size:28px;line-height:1.2;font-weight:800;color:#0f2231;margin:0 0 8px 0'>Ventas por máquina · {escape_html(client_label)} · {escape_html(report['month'])}</div>
+        <div class='bb-title' style='font-size:28px;line-height:1.2;font-weight:800;color:#0f2231;margin:0 0 8px 0'>Ventas por máquina · {escape_html(lessee_label)} · {escape_html(report['month'])}</div>
         <div class='bb-subtitle' style='font-size:14px;line-height:1.6;color:#486170;margin:0 0 10px 0'>Cada fila representa un día del mes. La banda se divide por producto según el porcentaje del monto vendido en esa máquina ese día.</div>
         <table role='presentation' cellpadding='0' cellspacing='0' style='border-collapse:collapse;margin:0 0 12px 0'><tr>
           <td style='padding:0 20px 0 0'><div class='bb-kicker' style='font-size:12px;color:#486170'>Ventas totales</div><div class='bb-stat' style='font-size:26px;font-weight:800;color:#0f2231'>{report['totals']['sales']}</div></td>
@@ -699,13 +701,13 @@ def main() -> int:
         inventory_payload=inventory_payload,
         mapping_payload=mapping_payload,
         machines_meta=machines_meta,
-        target_client=config["client"],
+        target_lessee=config["lessee"],
         month_key=f"{year:04d}-{month:02d}",
     )
-    subject = build_subject(config["subject_prefix"], config["client_label"], month_key)
-    text_body = build_text_body(report, config["client_label"])
-    preview_html = build_html_body(report, config["client_label"], config["logo_url"], interactive=True, dark_mode_css=True)
-    html_body = build_html_body(report, config["client_label"], config["logo_url"], interactive=False, dark_mode_css=False)
+    subject = build_subject(config["subject_prefix"], config["lessee_label"], month_key)
+    text_body = build_text_body(report, config["lessee_label"])
+    preview_html = build_html_body(report, config["lessee_label"], config["logo_url"], interactive=True, dark_mode_css=True)
+    html_body = build_html_body(report, config["lessee_label"], config["logo_url"], interactive=False, dark_mode_css=False)
     write_text(config["preview_path"], preview_html)
 
     summary = {
