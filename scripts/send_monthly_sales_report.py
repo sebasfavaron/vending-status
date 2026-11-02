@@ -480,8 +480,11 @@ def build_machine_mix_section(machine_report: dict[str, Any], *, interactive: bo
     legend_items = []
     for product, color in sorted(machine_report["product_colors"].items(), key=lambda item: item[0].lower()):
         legend_items.append(
-            "<span class='bbm-legend-item' style='display:inline-flex;align-items:center;gap:6px;margin:0 10px 8px 0;font-size:12px;color:#27414f'>"
-            f"<span class='bbm-swatch' style='display:inline-block;width:10px;height:10px;border-radius:999px;background:{color};box-shadow:0 0 0 1px rgba(0,79,100,.10)'></span>{escape(product)}"
+            # inline-block + vertical-align, not inline-flex/gap: Gmail drops flex, which left the dot
+            # high and touching the text.
+            "<span class='bbm-legend-item' style='display:inline-block;white-space:nowrap;margin:0 12px 8px 0;font-size:12px;line-height:16px;color:#27414f'>"
+            f"<span class='bbm-swatch' style='display:inline-block;width:10px;height:10px;border-radius:999px;background:{color};box-shadow:0 0 0 1px rgba(0,79,100,.10);vertical-align:middle;margin:0 6px 2px 0'></span>"
+            f"<span style='vertical-align:middle'>{escape(product)}</span>"
             "</span>"
         )
 
