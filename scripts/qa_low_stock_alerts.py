@@ -14,7 +14,7 @@ from send_low_stock_alerts import (
 
 LIVE_INVENTORY_PATH = Path("/home/sebas/work/projects/vending-status/site/ballbox/data/inventory.json")
 THRESHOLD = 2
-TARGET_CLIENT = "adidas"
+TARGET_LESSEE = "adidas"
 
 
 def scenario_result(name, ok, **extra):
@@ -27,7 +27,7 @@ def main():
         raise SystemExit("missing inventory snapshot")
 
     empty_mapping = {"machines": {}}
-    low_rows, current_low_keys, processable_machine_ids = collect_low_slots(inventory, empty_mapping, TARGET_CLIENT, THRESHOLD)
+    low_rows, current_low_keys, processable_machine_ids = collect_low_slots(inventory, empty_mapping, TARGET_LESSEE, THRESHOLD)
     first_state = apply_state_changes(
         {"version": 1, "alerts": {}},
         current_alerts=low_rows,
@@ -45,7 +45,7 @@ def main():
     second_new = [row for row in low_rows if not (first_state.get("alerts", {}).get(row["key"]) or {}).get("active")]
 
     mapped = {"machines": {"2601070191": {"3": "Producto QA Sheraton Slot 3"}}}
-    mapped_low_rows, _, _ = collect_low_slots(inventory, mapped, TARGET_CLIENT, THRESHOLD)
+    mapped_low_rows, _, _ = collect_low_slots(inventory, mapped, TARGET_LESSEE, THRESHOLD)
     mapped_new = [row for row in mapped_low_rows if row["key"] == "2601070191:3"]
     mapped_preview = {
         "subject": build_subject("Ballbox", "Adidas", len(mapped_new)),
@@ -58,7 +58,7 @@ def main():
             for slot in machine.get("slots", []):
                 if str(slot.get("slot_no")) == "3":
                     slot["quantity"] = "5"
-    recovered_rows, recovered_low_keys, recovered_processable = collect_low_slots(recovered_inventory, empty_mapping, TARGET_CLIENT, THRESHOLD)
+    recovered_rows, recovered_low_keys, recovered_processable = collect_low_slots(recovered_inventory, empty_mapping, TARGET_LESSEE, THRESHOLD)
     recovered_state = apply_state_changes(
         first_state,
         current_alerts=recovered_rows,
@@ -74,7 +74,7 @@ def main():
             for slot in machine.get("slots", []):
                 if str(slot.get("slot_no")) == "3":
                     slot["quantity"] = "1"
-    dropped_rows, dropped_low_keys, dropped_processable = collect_low_slots(dropped_again_inventory, empty_mapping, TARGET_CLIENT, THRESHOLD)
+    dropped_rows, dropped_low_keys, dropped_processable = collect_low_slots(dropped_again_inventory, empty_mapping, TARGET_LESSEE, THRESHOLD)
     dropped_new = [row for row in dropped_rows if not (recovered_state.get("alerts", {}).get(row["key"]) or {}).get("active")]
     dropped_state = apply_state_changes(
         recovered_state,

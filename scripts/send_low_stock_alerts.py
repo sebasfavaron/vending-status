@@ -9,6 +9,8 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+from lessee import get_lessee, get_lessee_label
+
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,7 +79,7 @@ def normalize_text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def normalize_client(value: Any) -> str:
+def normalize_lessee(value: Any) -> str:
     return " ".join(normalize_text(value).lower().split())
 
 
@@ -122,12 +124,12 @@ def resolve_product_label(slot: dict[str, Any], mapping: dict[str, Any]) -> str:
 
 def load_config(path: Path) -> dict[str, Any]:
     config = load_json(path, {}) or {}
-    client = normalize_text(config.get("client") or "adidas") or "adidas"
-    client_label = normalize_text(config.get("client_label") or client.title()) or client.title()
+    lessee = normalize_text(get_lessee(config) or "adidas") or "adidas"
+    lessee_label = normalize_text(get_lessee_label(config) or lessee.title()) or lessee.title()
     return {
         "enabled": bool(config.get("enabled", False)),
-        "client": client,
-        "client_label": client_label,
+        "lessee": lessee,
+        "lessee_label": lessee_label,
         "threshold": int(config.get("threshold", 2)),
         "provider": normalize_text(config.get("provider") or "resend") or "resend",
         "sender_name": normalize_text(config.get("sender_name") or "Ballbox"),
@@ -142,16 +144,16 @@ def load_config(path: Path) -> dict[str, Any]:
     }
 
 
-def collect_low_slots(inventory: dict[str, Any], mapping: dict[str, Any], target_client: str, threshold: int) -> tuple[list[dict[str, Any]], set[str], set[str]]:
+def collect_low_slots(inventory: dict[str, Any], mapping: dict[str, Any], target_lessee: str, threshold: int) -> tuple[list[dict[str, Any]], set[str], set[str]]:
     machines = ((inventory.get("data") or {}).get("machines") or []) if inventory else []
-    client_norm = normalize_client(target_client)
+    lessee_norm = normalize_lessee(target_lessee)
     low_rows: list[dict[str, Any]] = []
     processable_machine_ids: set[str] = set()
     current_low_keys: set[str] = set()
 
     for machine in machines:
-        machine_client = normalize_client(machine.get("client"))
-        if client_norm and client_norm not in machine_client:
+        machine_lessee = normalize_lessee(get_lessee(machine))
+        if lessee_norm and lessee_norm not in machine_lessee:
             continue
         machine_id = normalize_text(machine.get("machine_id"))
         if not machine_id or not is_processable_machine(machine):
@@ -185,16 +187,16 @@ def collect_low_slots(inventory: dict[str, Any], mapping: dict[str, Any], target
     return low_rows, current_low_keys, processable_machine_ids
 
 
-def build_subject(prefix: str, client_label: str, count: int) -> str:
+def build_subject(prefix: str, lessee_label: str, count: int) -> str:
     noun = "alerta" if count == 1 else "alertas"
-    return f"{prefix} · {client_label}: {count} {noun} de reposición"
+    return f"{prefix} · {lessee_label}: {count} {noun} de reposición"
 
 
-def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, client_label: str) -> str:
+def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, lessee_label: str) -> str:
     lines = [
         f"Hola,",
         "",
-        f"Vimos algunos productos con poco stock en {client_label}.",
+        f"Vimos algunos productos con poco stock en {lessee_label}.",
         "",
         "Para revisar:",
     ]
@@ -221,10 +223,10 @@ def build_text_body(alerts: list[dict[str, Any]], threshold: int, generated_at: 
     return "\n".join(lines)
 
 
-def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, client_label: str, logo_url: str | None) -> str:
+def build_html_body(alerts: list[dict[str, Any]], threshold: int, generated_at: str | None, lessee_label: str, logo_url: str | None) -> str:
     count = len(alerts)
     title = "Hay un producto para reponer" if count == 1 else f"Hay {count} productos para reponer"
-    subtitle = f"Detectamos posiciones con poco stock en {client_label}."
+    subtitle = f"Detectamos posiciones con poco stock en {lessee_label}."
     items = []
     for row in alerts:
         price = money(row["price"]) if row.get("price") else "sin precio"
@@ -405,7 +407,7 @@ def main() -> int:
     low_rows, current_low_keys, processable_machine_ids = collect_low_slots(
         inventory,
         mapping,
-        config["client"],
+        config["lessee"],
         config["threshold"],
     )
 
@@ -455,9 +457,9 @@ def main() -> int:
             print("missing RESEND_API_KEY", file=sys.stderr)
             return 2
         generated_at = inventory.get("generated_at")
-        subject = build_subject(config["subject_prefix"], config["client_label"], len(newly_low))
-        text_body = build_text_body(newly_low, config["threshold"], generated_at, config["client_label"])
-        html_body = build_html_body(newly_low, config["threshold"], generated_at, config["client_label"], config["logo_url"])
+        subject = build_subject(config["subject_prefix"], config["lessee_label"], len(newly_low))
+        text_body = build_text_body(newly_low, config["threshold"], generated_at, config["lessee_label"])
+        html_body = build_html_body(newly_low, config["threshold"], generated_at, config["lessee_label"], config["logo_url"])
         send_result = send_resend_email(
             api_key,
             sender_name=config["sender_name"],

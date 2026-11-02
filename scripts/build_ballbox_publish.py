@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
+from lessee import get_lessee
 from send_sales_report_email import collect_sales_report
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,7 +95,7 @@ def build_status(status, meta_by_id, adidas_by_id, sales_by_station):
             "slug": meta.get("slug"),
             "label": meta.get("label") or row.get("alias") or machine_id,
             "site": meta.get("site"),
-            "client": meta.get("client"),
+            "client": get_lessee(meta),
             "inventory": adidas.get("summary"),
             "inventory_status": adidas.get("inventory_status"),
             "sales_summary": sales,
@@ -122,7 +123,7 @@ def build_machines(status, meta_rows, adidas_by_id, sales_by_station):
             "label": meta.get("label"),
             "alias": meta.get("alias"),
             "site": meta.get("site"),
-            "client": meta.get("client"),
+            "client": get_lessee(meta),
             "group_name": (status_row or {}).get("group_name") or meta.get("group_name"),
             "enabled": meta.get("enabled", True),
             "notes": meta.get("notes"),
@@ -476,7 +477,7 @@ def build_inventory(meta_rows, adidas_by_id, views_by_slug, slot_names_by_machin
         if not item:
             item = {
                 "machine_id": machine_id,
-                "client": "Adidas Padel" if meta.get("client") == "adidas" else meta.get("client"),
+                "client": "Adidas Padel" if get_lessee(meta) == "adidas" else get_lessee(meta),
                 "label": meta.get("label"),
                 "site": meta.get("site"),
                 "inventory_status": "missing_snapshot",
@@ -532,7 +533,7 @@ def build_sales(sales, meta_rows, inventory_data, slot_names_by_machine, product
     by_station = []
     for row in sales.get("by_station", []):
         meta = station_to_machine.get(row.get("station_id"), {})
-        by_station.append({**row, "machine_id": meta.get("machine_id"), "slug": meta.get("slug"), "client": meta.get("client")})
+        by_station.append({**row, "machine_id": meta.get("machine_id"), "slug": meta.get("slug"), "client": get_lessee(meta)})
     by_station_slot = []
     for row in sales.get("by_station_slot", []):
         meta = station_to_machine.get(row.get("station_id"), {})
@@ -552,7 +553,7 @@ def build_sales(sales, meta_rows, inventory_data, slot_names_by_machine, product
             **row,
             "machine_id": meta.get("machine_id"),
             "slug": meta.get("slug"),
-            "client": meta.get("client"),
+            "client": get_lessee(meta),
             "slot_label": fallback_slot_label(slot_no),
             "product_name": product_name,
             "inventory_quantity": slot_info.get("quantity_int"),
@@ -679,7 +680,7 @@ def build_monthly_sales_report(operations, inventory_data, slot_mapping, meta_ro
             inventory_payload=inventory_data,
             mapping_payload=slot_mapping,
             machines_meta=meta_rows,
-            target_client="adidas",
+            target_lessee="adidas",
             month_key=month_key,
         )
     except Exception as exc:

@@ -80,6 +80,17 @@ Sales mail prototype:
 - config: local JSON
 - preview HTML: `/home/sebas/runtime/ballbox/tmp/sales_report_email_preview.html`
 
+Lessee keys (low stock, sales mail, monthly report):
+- the lessee (arrendatario) rents the machines from Ballbox and pays the rent, e.g. Adidas
+  (ballbox-db `company/glossary.md`)
+- `config/stock_alerts.json`, `config/sales_email.json`, `config/monthly_sales_report.json`:
+  `lessee` (slug, default `adidas`) and `lessee_label` (shown in subjects and headers,
+  default `Adidas`)
+- `config/machines_metadata.json`: each row's `lessee` picks the machines that belong to it
+- the old `client` / `client_label` keys still work as a fallback (`scripts/lessee.py`); the new
+  key wins when both are set
+- the published JSON under `site/ballbox/data/` and the `?client=` URLs keep the name `client`
+
 Beetwallet amount anomaly warning:
 - runner: `python3 scripts/send_beetwallet_amount_warnings.py`
 - first run creates a baseline and ignores existing bad historical rows
