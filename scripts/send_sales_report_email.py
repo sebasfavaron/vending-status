@@ -429,26 +429,43 @@ def collect_sales_report(*, operations_payload: dict, inventory_payload: dict, m
 def build_segment_html(segments: list[dict], *, interactive: bool = True) -> str:
     if not segments:
         return "<div style='height:16px;background:linear-gradient(90deg,#d8dee8 0%,#eef2f7 100%);border-radius:999px'></div>"
+    # A fixed-layout table, not floats: floated segments whose widths round past 100% wrap the
+    # last one onto a second line in mail clients. Widths are scaled to fit 100% exactly.
+    widths = [max(segment["share"], 0.8) for segment in segments]
+    total_width = sum(widths)
+    if total_width > 100:
+        widths = [width * 100 / total_width for width in widths]
+    filler = 100 - sum(widths)
+    has_filler = filler >= 0.5
     cells = []
-    total_segments = len(segments)
-    for idx, segment in enumerate(segments):
-        width = max(segment["share"], 0.8)
+    total_cells = len(segments) + (1 if has_filler else 0)
+    for idx, (segment, width) in enumerate(zip(segments, widths)):
         tip = f"{segment['product']} · {money(segment['amount'])} · {segment['sales']} ventas · {segment['share']:.1f}% del monto del día"
         radius = ""
-        if total_segments == 1:
+        if total_cells == 1:
             radius = "border-radius:999px;"
         elif idx == 0:
             radius = "border-radius:999px 0 0 999px;"
-        elif idx == total_segments - 1:
+        elif idx == total_cells - 1:
             radius = "border-radius:0 999px 999px 0;"
         title_attr = f" title='{escape_html(tip)}'" if interactive else ""
+        # The last cell takes the remainder, so rounding can never push the row past 100%.
+        width_attr = "" if idx == total_cells - 1 else f"width:{width:.2f}%;"
         cells.append(
-            f"<span class='bb-seg'{title_attr} "
-            f"style='display:block;float:left;width:{width:.2f}%;height:16px;background:{segment['color']};position:relative;{radius}'>"
+            f"<td class='bb-seg'{title_attr} "
+            f"style='{width_attr}height:16px;padding:0;background:{segment['color']};font-size:0;line-height:0;{radius}'>"
             "&nbsp;"
-            "</span>"
+            "</td>"
         )
-    return "<div class='bb-bar'><div class='bb-bar-inner'>" + "".join(cells) + "</div><div style='clear:both'></div></div>"
+    if has_filler:
+        cells.append("<td style='height:16px;padding:0;font-size:0;line-height:0;border-radius:0 999px 999px 0'>&nbsp;</td>")
+    return (
+        "<div class='bb-bar'><div class='bb-bar-inner'>"
+        "<table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%' "
+        "style='width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0'><tr>"
+        + "".join(cells)
+        + "</tr></table></div></div>"
+    )
 
 
 def build_text_body(report: dict, client_label: str) -> str:
