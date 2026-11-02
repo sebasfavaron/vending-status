@@ -49,7 +49,7 @@ concurrency:
 
 env:
   # Months up to 2026-09 were sent from the Pi; their send log is not in this repo's artifacts.
-  FIRST_ACTIONS_MONTH: "2026-10"
+  FIRST_ACTIONS_MONTH: "2026-11"
 
 jobs:
   review:
