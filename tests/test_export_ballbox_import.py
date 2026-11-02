@@ -297,6 +297,30 @@ class StableFallbackGeneratedAtTests(unittest.TestCase):
         self.assertTrue(value)  # still produces a usable ISO timestamp, doesn't crash
 
 
+class TransactionsOnlyPayloadTests(unittest.TestCase):
+    def test_sends_transactions_from_the_given_file_and_no_machines(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        status_path = tmp_dir / "status.json"
+        status_path.write_text('{"updated_at": "2026-11-01T12:00:00Z", "machines": [{"machine_id": "m1"}]}')
+        operations_path = tmp_dir / "recent.json"
+        operations_path.write_text(
+            '{"operations": [{"_id": "op1", "estacion": {"_id": "st1"}, "fecha": "2026-11-01T14:08:52.923Z",'
+            ' "monto": 30000, "status": "finalizado", "venta": {"seleccion": 46}}]}'
+        )
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", status_path), mock.patch.object(
+            export_ballbox_import, "ADIDAS_PATH", tmp_dir / "missing.json"
+        ), mock.patch.object(export_ballbox_import, "MACHINES_META", tmp_dir / "must-not-be-read.json"):
+            payload = export_ballbox_import.build_payload(transactions_only=True, operations_path=operations_path)
+            same = export_ballbox_import.build_payload(transactions_only=True, operations_path=operations_path)
+
+        # `machines: []` is valid for Ballbox's contract and writes no snapshot rows.
+        self.assertEqual(payload["machines"], [])
+        self.assertEqual([t["externalId"] for t in payload["transactions"]], ["op1"])
+        self.assertEqual(payload["sourceGeneratedAt"], "2026-11-01T12:00:00Z")
+        # Nothing new sold -> same key -> Ballbox replays instead of writing again.
+        self.assertEqual(payload["idempotencyKey"], same["idempotencyKey"])
+
+
 class PostPayloadTests(unittest.TestCase):
     def test_url_error_returns_clean_error_tuple_instead_of_raising(self):
         with mock.patch(

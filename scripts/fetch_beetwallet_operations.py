@@ -13,7 +13,9 @@ ALL_TIME_TO = '2100-01-01'
 ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = ROOT / '.env'
 DATA_DIR = ROOT / 'data'
-TARGET = DATA_DIR / 'beetwallet_operations.json'
+# BEET_OPERATIONS_OUT writes somewhere else: the 5-minute Ballbox feed fetches only the
+# last days and must not replace the all-time file the monthly report reads.
+TARGET = Path(os.environ.get('BEET_OPERATIONS_OUT') or DATA_DIR / 'beetwallet_operations.json')
 
 
 def load_env(path: Path):
@@ -100,8 +102,10 @@ def main():
     except Exception:
         user_data = None
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    TARGET.write_text(json.dumps({
+    TARGET.parent.mkdir(parents=True, exist_ok=True)
+    # Write then rename: a reader (report, exporter) never sees a half-written file.
+    partial = TARGET.with_name(TARGET.name + '.partial')
+    partial.write_text(json.dumps({
         'meta': {
             'desde': desde,
             'hasta': hasta,
@@ -113,6 +117,7 @@ def main():
         'operations': operations,
         'user_data': user_data,
     }, ensure_ascii=False, indent=2))
+    partial.replace(TARGET)
     print(TARGET)
 
 
