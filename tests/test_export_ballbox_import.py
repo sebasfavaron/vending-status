@@ -316,9 +316,42 @@ class TransactionsOnlyPayloadTests(unittest.TestCase):
         # `machines: []` is valid for Ballbox's contract and writes no snapshot rows.
         self.assertEqual(payload["machines"], [])
         self.assertEqual([t["externalId"] for t in payload["transactions"]], ["op1"])
-        self.assertEqual(payload["sourceGeneratedAt"], "2026-11-01T12:00:00Z")
+        # The latest sale, not status.json's time: the Actions runner has no status.json.
+        self.assertEqual(payload["sourceGeneratedAt"], "2026-11-01T14:08:52.923Z")
         # Nothing new sold -> same key -> Ballbox replays instead of writing again.
         self.assertEqual(payload["idempotencyKey"], same["idempotencyKey"])
+
+    def test_key_does_not_depend_on_local_snapshots(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        operations_path = tmp_dir / "recent.json"
+        operations_path.write_text(
+            '{"operations": [{"_id": "op1", "estacion": {"_id": "st1"}, "fecha": "2026-11-01T14:08:52.923Z",'
+            ' "monto": 30000, "status": "finalizado", "venta": {"seleccion": 46}}]}'
+        )
+        status_path = tmp_dir / "status.json"
+        status_path.write_text('{"updated_at": "2026-11-01T12:00:00Z"}')
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", status_path):
+            on_the_pi = export_ballbox_import.build_payload(transactions_only=True, operations_path=operations_path)
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", tmp_dir / "missing.json"), mock.patch.object(
+            export_ballbox_import, "ADIDAS_PATH", tmp_dir / "missing.json"
+        ):
+            on_a_runner = export_ballbox_import.build_payload(transactions_only=True, operations_path=operations_path)
+
+        # Two feeds that fetched the same sales send the same request, and Ballbox replays the second.
+        self.assertEqual(on_the_pi["idempotencyKey"], on_a_runner["idempotencyKey"])
+
+    def test_no_sales_still_gives_a_stable_key(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        operations_path = tmp_dir / "recent.json"
+        operations_path.write_text('{"operations": []}')
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", tmp_dir / "missing.json"), mock.patch.object(
+            export_ballbox_import, "ADIDAS_PATH", tmp_dir / "missing.json"
+        ):
+            first = export_ballbox_import.build_payload(transactions_only=True, operations_path=operations_path)
+            second = export_ballbox_import.build_payload(transactions_only=True, operations_path=operations_path)
+
+        self.assertNotIn("sourceGeneratedAt", first)
+        self.assertEqual(first["idempotencyKey"], second["idempotencyKey"])
 
 
 class PostPayloadTests(unittest.TestCase):

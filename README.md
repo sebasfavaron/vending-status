@@ -179,21 +179,44 @@ Full request/response contract:
 
 ### Schedule
 
-`scripts/run_ballbox_sales_feed.sh`, run by `ballbox-sales-feed.timer` (pi-config
-`systemd/user/`) every 5 minutes:
+`scripts/run_ballbox_sales_feed.sh [--full | --recent]` runs in GitHub Actions
+(`.github/workflows/sales-feed.yml`) and, until Sebas turns it off, in `ballbox-sales-feed.timer`
+on the Pi (pi-config `systemd/user/`). Both can run at once: Ballbox skips a sale it already has
+(`externalId`), and two feeds that fetched the same sales send the same request, which Ballbox
+replays.
 
-- every run: Beetwallet operations of the last 3 days into
-  `~/runtime/ballbox/state/beetwallet_operations_recent.json` (`BEET_OPERATIONS_OUT`), then
+- recent, every 5 minutes: Beetwallet operations of the last 3 days into
+  `$SALES_FEED_STATE_DIR/beetwallet_operations_recent.json`, then
   `export_ballbox_import.py --transactions-only --operations <that file>`. `machines` is empty,
-  so Ballbox writes no status or inventory snapshot; with no new sale the payload is the same
-  and Ballbox replays it;
-- every 6 hours (or `--full`): `fetch_status.py`, `build_adidas_snapshot.py`, all Beetwallet
-  operations into `data/beetwallet_operations.json`, and the full export.
+  so Ballbox writes no status or inventory snapshot. `sourceGeneratedAt` is the latest sale, so
+  with no new sale the request is the same and Ballbox replays it;
+- full, every 6 hours: `fetch_status.py`, `build_adidas_snapshot.py`, all Beetwallet operations
+  into `data/beetwallet_operations.json`, and the full export. With no flag the script picks full
+  when its last full run (in `SALES_FEED_STATE_DIR`) is 6 hours old.
 
-It does not send the amount-warning Telegram and does not publish the portal. The secret is
-read from `~/runtime/secrets/ballbox-machine-data.env` (`BALLBOX_MACHINE_DATA_SHARED_SECRET`,
-optional `BALLBOX_BASE_URL`, default `https://ballbox.app`); `BALLBOX_MACHINE_DATA_ENV`
-points somewhere else for a local test.
+| variable | default |
+|---|---|
+| `BALLBOX_MACHINE_DATA_SHARED_SECRET` | read from `BALLBOX_MACHINE_DATA_ENV` (`~/runtime/secrets/ballbox-machine-data.env`) |
+| `BALLBOX_BASE_URL` | `https://ballbox.app` |
+| `BEET_USERNAME`, `BEET_PASSWORD` | `.env` in this repo |
+| `OURVEND_USERNAME`, `OURVEND_PASSWORD` (full only) | read from `OURVEND_ENV` (`~/runtime/secrets/ourvend.env`) |
+| `SALES_FEED_STATE_DIR` | `~/runtime/ballbox/state` |
+
+It prints one line per export: the endpoint's verdict, counts and the number of warnings. The
+warnings themselves stay in Ballbox (`GET /api/admin/machine-data/import-runs`), because the
+Actions logs of this public repo are readable by anyone. Where `telegram-notify` exists (the Pi)
+it sends one Telegram when it starts failing and one when it recovers; in Actions a failed run is
+the alert.
+
+Actions gotchas:
+
+- secrets: `BALLBOX_MACHINE_DATA_SHARED_SECRET` (the value set in Vercel), `BEET_USERNAME`,
+  `BEET_PASSWORD`, `OURVEND_USERNAME`, `OURVEND_PASSWORD`, and for the full run
+  `MONTHLY_REPORT_CONFIG_TGZ_B64` (machine metadata and slot mapping);
+- GitHub runs schedules best-effort: a 5-minute cron often lands 10 to 20 minutes late, and
+  Ballbox shows "data is old" after 20 minutes without a check;
+- two imports that insert the same new sale at the same second can collide on `externalId`; one
+  run fails and the next one counts the sale as a duplicate.
 
 ### Retries
 

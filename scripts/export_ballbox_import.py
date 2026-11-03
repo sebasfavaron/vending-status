@@ -301,22 +301,31 @@ def build_transactions_input(operations_payload):
 
 
 def build_payload(transactions_only: bool = False, operations_path: Path = OPERATIONS_PATH):
-    status = load_json(STATUS_PATH, {}) or {}
-    adidas = load_json(ADIDAS_PATH, {}) or {}
     operations_payload = load_json(operations_path, {}) or {}
 
+    if transactions_only:
+        machines = []
+        transactions = build_transactions_input(operations_payload)
+        # The latest sale, not the status snapshot's time: a runner without site/status.json
+        # (GitHub Actions) would otherwise fall back to now and write one ImportRun per run.
+        # Only a new sale changes the key, wherever the feed runs.
+        latest_sale = max((t["occurredAt"] for t in transactions), default=None)
+        payload_without_key = {"source": SOURCE, "machines": machines, "transactions": transactions}
+        if latest_sale:
+            payload_without_key["sourceGeneratedAt"] = latest_sale
+        return {"idempotencyKey": sha256_hex(canonical_json(payload_without_key)), **payload_without_key}
+
+    status = load_json(STATUS_PATH, {}) or {}
+    adidas = load_json(ADIDAS_PATH, {}) or {}
     fallback_generated_at = (
         status.get("updated_at") or adidas.get("updated_at") or stable_source_mtime_iso()
     )
 
-    if transactions_only:
-        machines = []
-    else:
-        meta_rows = load_json(MACHINES_META, []) or []
-        slot_mapping = load_json(SLOT_MAPPING_PATH, {}) or {}
-        views_cache = load_json(ADIDAS_VIEWS_CACHE, {}) or {}
-        views_by_slug = {str(row.get("slug")): row for row in views_cache.get("views", []) if row.get("slug")}
-        machines = build_machines_input(status, adidas, meta_rows, views_by_slug, slot_mapping, fallback_generated_at)
+    meta_rows = load_json(MACHINES_META, []) or []
+    slot_mapping = load_json(SLOT_MAPPING_PATH, {}) or {}
+    views_cache = load_json(ADIDAS_VIEWS_CACHE, {}) or {}
+    views_by_slug = {str(row.get("slug")): row for row in views_cache.get("views", []) if row.get("slug")}
+    machines = build_machines_input(status, adidas, meta_rows, views_by_slug, slot_mapping, fallback_generated_at)
     transactions = build_transactions_input(operations_payload)
 
     payload_without_key = {
