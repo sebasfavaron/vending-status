@@ -1,0 +1,82 @@
+# Live Beetwallet sales feed for ballbox.app "Ventas en vivo" (/admin/machines/manage/ventas).
+# Moves ballbox-sales-feed.timer off the Pi (pi-config systemd/user/, decision K19). Both can run
+# at once: Ballbox skips a sale it already has (externalId) and replays an identical request.
+#
+#   every 5 min  - recent: Beetwallet operations of the last 3 days, transactions only
+#   every 6 h    - full: OurVend status + inventory, all Beetwallet operations, full export
+#
+# GitHub runs schedules best-effort: a 5-minute cron often lands 10-20 minutes late. Ballbox
+# shows "data is old" after 20 minutes without a check (SALES_FEED_STALE_AFTER_MS).
+#
+# This repo is public: logs and artifacts are readable by anyone. The script prints one summary
+# line per export (counts and the number of warnings), the helpers' stderr goes to a runner file
+# (a failed login prints the vendor's response), and this workflow uploads nothing.
+
+name: Sales feed
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "recent | full"
+        type: choice
+        options: [recent, full]
+        default: recent
+
+permissions:
+  contents: read
+
+# One run at a time; a late run waits instead of racing the next one.
+concurrency:
+  group: sales-feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - id: mode
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          mode="${INPUT_MODE:-recent}"
+          [[ "$SCHEDULE" == "41 */6 * * *" ]] && mode=full
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "mode: $mode"
+
+      # Machine metadata and the slot mapping are gitignored; the full export reads them from the
+      # monthly report's config tarball (README "Monthly report in Actions").
+      - name: Restore local config
+        if: steps.mode.outputs.mode == 'full'
+        env:
+          MONTHLY_REPORT_CONFIG_TGZ_B64: ${{ secrets.MONTHLY_REPORT_CONFIG_TGZ_B64 }}
+        run: |
+          [[ -n "$MONTHLY_REPORT_CONFIG_TGZ_B64" ]] || { echo "::error::missing secret MONTHLY_REPORT_CONFIG_TGZ_B64"; exit 1; }
+          printf '%s' "$MONTHLY_REPORT_CONFIG_TGZ_B64" | base64 -d | tar -xzf - config/adidas_slot_products.json config/machines_metadata.json
+
+      - name: Feed
+        env:
+          BALLBOX_MACHINE_DATA_SHARED_SECRET: ${{ secrets.BALLBOX_MACHINE_DATA_SHARED_SECRET }}
+          BALLBOX_BASE_URL: https://ballbox.app
+          BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
+          BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+          OURVEND_USERNAME: ${{ secrets.OURVEND_USERNAME }}
+          OURVEND_PASSWORD: ${{ secrets.OURVEND_PASSWORD }}
+          SALES_FEED_STATE_DIR: ${{ runner.temp }}/state
+          SALES_FEED_ERR_LOG: ${{ runner.temp }}/sales-feed.err
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: scripts/run_ballbox_sales_feed.sh "--$MODE"
