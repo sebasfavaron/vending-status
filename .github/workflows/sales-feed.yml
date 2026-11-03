@@ -9,7 +9,8 @@
 # shows "data is old" after 20 minutes without a check (SALES_FEED_STALE_AFTER_MS).
 #
 # This repo is public: logs and artifacts are readable by anyone. The script prints one summary
-# line per export (counts and the number of warnings) and this workflow uploads nothing.
+# line per export (counts and the number of warnings), the helpers' stderr goes to a runner file
+# (a failed login prints the vendor's response), and this workflow uploads nothing.
 
 name: Sales feed
 
@@ -76,5 +77,6 @@ jobs:
           OURVEND_USERNAME: ${{ secrets.OURVEND_USERNAME }}
           OURVEND_PASSWORD: ${{ secrets.OURVEND_PASSWORD }}
           SALES_FEED_STATE_DIR: ${{ runner.temp }}/state
+          SALES_FEED_ERR_LOG: ${{ runner.temp }}/sales-feed.err
           MODE: ${{ steps.mode.outputs.mode }}
         run: scripts/run_ballbox_sales_feed.sh "--$MODE"

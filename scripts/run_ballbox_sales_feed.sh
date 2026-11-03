@@ -20,9 +20,12 @@
 #   OURVEND_USERNAME, OURVEND_PASSWORD  full run only; when unset, read from OURVEND_ENV
 #                                       (default ~/runtime/secrets/ourvend.env)
 #   SALES_FEED_STATE_DIR                default ~/runtime/ballbox/state
+#   SALES_FEED_ERR_LOG                  where the helper scripts' stderr goes (default: stderr)
 #
 # Output is one summary line per export: counts and the number of warnings, never the warnings
-# themselves, because the Actions logs of this public repo are readable by anyone.
+# themselves, because the Actions logs of this public repo are readable by anyone. For the same
+# reason the workflow sends the helpers' stderr (a failed login prints the vendor's response) to
+# SALES_FEED_ERR_LOG, a file that is never uploaded.
 #
 # It does not send the amount-warning Telegram and does not publish the old portal. Where
 # telegram-notify exists (the Pi) it sends one Telegram when it starts failing and one when it
@@ -33,6 +36,7 @@ cd "$(dirname "$0")/.."
 SECRET_FILE="${BALLBOX_MACHINE_DATA_ENV:-$HOME/runtime/secrets/ballbox-machine-data.env}"
 OURVEND_FILE="${OURVEND_ENV:-$HOME/runtime/secrets/ourvend.env}"
 STATE_DIR="${SALES_FEED_STATE_DIR:-$HOME/runtime/ballbox/state}"
+ERR_LOG="${SALES_FEED_ERR_LOG:-/dev/stderr}"
 RECENT_OPERATIONS="$STATE_DIR/beetwallet_operations_recent.json"
 LAST_FULL="$STATE_DIR/sales-feed-last-full"
 FULL_EVERY_SECONDS=$((6 * 3600))
@@ -101,15 +105,15 @@ summary() { python3 -c 'import json,sys; b=json.load(sys.stdin); s={k: b[k] for 
 
 if (( full )); then
   echo "$(stamp) full export to $BALLBOX_BASE_URL"
-  python3 scripts/fetch_status.py >/dev/null || echo "status fetch failed; exporting the last status snapshot" >&2
+  python3 scripts/fetch_status.py >/dev/null 2>>"$ERR_LOG" || echo "status fetch failed; exporting the last status snapshot" >&2
   rm -f runtime/vending-web/cache/adidas_inventory_views.json
-  python3 scripts/build_adidas_snapshot.py >/dev/null || echo "inventory snapshot failed; exporting the last one" >&2
-  python3 scripts/fetch_beetwallet_operations.py >/dev/null
-  python3 scripts/export_ballbox_import.py | summary
+  python3 scripts/build_adidas_snapshot.py >/dev/null 2>>"$ERR_LOG" || echo "inventory snapshot failed; exporting the last one" >&2
+  python3 scripts/fetch_beetwallet_operations.py >/dev/null 2>>"$ERR_LOG" || { echo "Beetwallet fetch failed" >&2; exit 1; }
+  python3 scripts/export_ballbox_import.py 2>>"$ERR_LOG" | summary
   touch "$LAST_FULL"
 else
   since="$(python3 -c 'from datetime import datetime, timedelta; from zoneinfo import ZoneInfo; print((datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")) - timedelta(days=2)).date())')"
   echo "$(stamp) transactions since $since to $BALLBOX_BASE_URL"
-  BEET_OPERATIONS_OUT="$RECENT_OPERATIONS" python3 scripts/fetch_beetwallet_operations.py "$since" 2100-01-01 >/dev/null
-  python3 scripts/export_ballbox_import.py --transactions-only --operations "$RECENT_OPERATIONS" | summary
+  BEET_OPERATIONS_OUT="$RECENT_OPERATIONS" python3 scripts/fetch_beetwallet_operations.py "$since" 2100-01-01 >/dev/null 2>>"$ERR_LOG" || { echo "Beetwallet fetch failed" >&2; exit 1; }
+  python3 scripts/export_ballbox_import.py --transactions-only --operations "$RECENT_OPERATIONS" 2>>"$ERR_LOG" | summary
 fi
