@@ -179,18 +179,19 @@ Full request/response contract:
 
 ### Schedule
 
-`scripts/run_ballbox_sales_feed.sh [--full | --recent]` runs in GitHub Actions
-(`.github/workflows/sales-feed.yml`) and, until Sebas turns it off, in `ballbox-sales-feed.timer`
-on the Pi (pi-config `systemd/user/`). Both can run at once: Ballbox skips a sale it already has
+`scripts/run_ballbox_sales_feed.sh [--full | --recent]` runs in `ballbox-sales-feed.timer` on
+the Pi (pi-config `systemd/user/`), every 5 minutes, and as a backup in GitHub Actions
+(`.github/workflows/sales-feed.yml`): recent every 30 minutes, full every 6 hours. The Pi stays
+primary because GitHub's 5-minute cron fired once in 6 hours (2026-11-03). Both can run at once: Ballbox skips a sale it already has
 (`externalId`), and two feeds that fetched the same sales send the same request, which Ballbox
 replays.
 
-- recent, every 5 minutes: Beetwallet operations of the last 3 days into
+- recent: Beetwallet operations of the last 3 days into
   `$SALES_FEED_STATE_DIR/beetwallet_operations_recent.json`, then
   `export_ballbox_import.py --transactions-only --operations <that file>`. `machines` is empty,
   so Ballbox writes no status or inventory snapshot. `sourceGeneratedAt` is the latest sale, so
   with no new sale the request is the same and Ballbox replays it;
-- full, every 6 hours: `fetch_status.py`, `build_adidas_snapshot.py`, all Beetwallet operations
+- full: `fetch_status.py`, `build_adidas_snapshot.py`, all Beetwallet operations
   into `data/beetwallet_operations.json`, and the full export. With no flag the script picks full
   when its last full run (in `SALES_FEED_STATE_DIR`) is 6 hours old.
 
@@ -213,8 +214,8 @@ Actions gotchas:
 - secrets: `BALLBOX_MACHINE_DATA_SHARED_SECRET` (the value set in Vercel), `BEET_USERNAME`,
   `BEET_PASSWORD`, `OURVEND_USERNAME`, `OURVEND_PASSWORD`, and for the full run
   `MONTHLY_REPORT_CONFIG_TGZ_B64` (machine metadata and slot mapping);
-- GitHub runs schedules best-effort: a 5-minute cron often lands 10 to 20 minutes late, and
-  Ballbox shows "data is old" after 20 minutes without a check;
+- GitHub runs schedules best-effort and can skip hours; Ballbox shows "data is old" after 20
+  minutes without a check, so Actions alone cannot keep "Ventas en vivo" fresh;
 - two imports that insert the same new sale at the same second can collide on `externalId`; one
   run fails and the next one counts the sale as a duplicate.
 

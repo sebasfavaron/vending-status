@@ -1,12 +1,15 @@
 # Live Beetwallet sales feed for ballbox.app "Ventas en vivo" (/admin/machines/manage/ventas).
-# Moves ballbox-sales-feed.timer off the Pi (pi-config systemd/user/, decision K19). Both can run
-# at once: Ballbox skips a sale it already has (externalId) and replays an identical request.
+# The Pi's ballbox-sales-feed.timer (pi-config systemd/user/) stays the primary feed, every
+# 5 minutes. This workflow is the backup that keeps sales arriving when the Pi is down (Sebas,
+# 2026-11-03). Both run at once: Ballbox skips a sale it already has (externalId) and replays an
+# identical request.
 #
-#   every 5 min  - recent: Beetwallet operations of the last 3 days, transactions only
-#   every 6 h    - full: OurVend status + inventory, all Beetwallet operations, full export
+#   every 30 min (:07, :37) - recent: Beetwallet operations of the last 3 days, transactions only
+#   every 6 h               - full: OurVend status + inventory, all Beetwallet operations, full export
 #
-# GitHub runs schedules best-effort: a 5-minute cron often lands 10-20 minutes late. Ballbox
-# shows "data is old" after 20 minutes without a check (SALES_FEED_STALE_AFTER_MS).
+# Why not every 5 minutes: GitHub runs schedules best-effort. After the merge on 2026-11-03 the
+# 5-minute cron fired once in 6 hours, and Ballbox shows "data is old" after 20 minutes
+# (SALES_FEED_STALE_AFTER_MS). Off-the-hour minutes avoid the top-of-the-hour queue.
 #
 # This repo is public: logs and artifacts are readable by anyone. The script prints one summary
 # line per export (counts and the number of warnings), the helpers' stderr goes to a runner file
@@ -16,7 +19,7 @@ name: Sales feed
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "7,37 * * * *"
     - cron: "41 */6 * * *"
   workflow_dispatch:
     inputs:
