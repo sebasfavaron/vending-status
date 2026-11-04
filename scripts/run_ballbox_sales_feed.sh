@@ -36,7 +36,14 @@ cd "$(dirname "$0")/.."
 SECRET_FILE="${BALLBOX_MACHINE_DATA_ENV:-$HOME/runtime/secrets/ballbox-machine-data.env}"
 OURVEND_FILE="${OURVEND_ENV:-$HOME/runtime/secrets/ourvend.env}"
 STATE_DIR="${SALES_FEED_STATE_DIR:-$HOME/runtime/ballbox/state}"
-ERR_LOG="${SALES_FEED_ERR_LOG:-/dev/stderr}"
+# Helpers' stderr goes to fd 3. Without SALES_FEED_ERR_LOG it is a copy of stderr, never a reopened
+# /dev/stderr: under systemd stderr is the journal's socket, and opening it fails with "No such
+# device or address", so every helper failed before it ran (2026-11-04, rb-245).
+if [[ -n "${SALES_FEED_ERR_LOG:-}" ]]; then
+  exec 3>>"$SALES_FEED_ERR_LOG"
+else
+  exec 3>&2
+fi
 RECENT_OPERATIONS="$STATE_DIR/beetwallet_operations_recent.json"
 LAST_FULL="$STATE_DIR/sales-feed-last-full"
 FULL_EVERY_SECONDS=$((6 * 3600))
@@ -105,15 +112,15 @@ summary() { python3 -c 'import json,sys; b=json.load(sys.stdin); s={k: b[k] for 
 
 if (( full )); then
   echo "$(stamp) full export to $BALLBOX_BASE_URL"
-  python3 scripts/fetch_status.py >/dev/null 2>>"$ERR_LOG" || echo "status fetch failed; exporting the last status snapshot" >&2
+  python3 scripts/fetch_status.py >/dev/null 2>&3 || echo "status fetch failed; exporting the last status snapshot" >&2
   rm -f runtime/vending-web/cache/adidas_inventory_views.json
-  python3 scripts/build_adidas_snapshot.py >/dev/null 2>>"$ERR_LOG" || echo "inventory snapshot failed; exporting the last one" >&2
-  python3 scripts/fetch_beetwallet_operations.py >/dev/null 2>>"$ERR_LOG" || { echo "Beetwallet fetch failed" >&2; exit 1; }
-  python3 scripts/export_ballbox_import.py 2>>"$ERR_LOG" | summary
+  python3 scripts/build_adidas_snapshot.py >/dev/null 2>&3 || echo "inventory snapshot failed; exporting the last one" >&2
+  python3 scripts/fetch_beetwallet_operations.py >/dev/null 2>&3 || { echo "Beetwallet fetch failed" >&2; exit 1; }
+  python3 scripts/export_ballbox_import.py 2>&3 | summary
   touch "$LAST_FULL"
 else
   since="$(python3 -c 'from datetime import datetime, timedelta; from zoneinfo import ZoneInfo; print((datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")) - timedelta(days=2)).date())')"
   echo "$(stamp) transactions since $since to $BALLBOX_BASE_URL"
-  BEET_OPERATIONS_OUT="$RECENT_OPERATIONS" python3 scripts/fetch_beetwallet_operations.py "$since" 2100-01-01 >/dev/null 2>>"$ERR_LOG" || { echo "Beetwallet fetch failed" >&2; exit 1; }
-  python3 scripts/export_ballbox_import.py --transactions-only --operations "$RECENT_OPERATIONS" 2>>"$ERR_LOG" | summary
+  BEET_OPERATIONS_OUT="$RECENT_OPERATIONS" python3 scripts/fetch_beetwallet_operations.py "$since" 2100-01-01 >/dev/null 2>&3 || { echo "Beetwallet fetch failed" >&2; exit 1; }
+  python3 scripts/export_ballbox_import.py --transactions-only --operations "$RECENT_OPERATIONS" 2>&3 | summary
 fi
