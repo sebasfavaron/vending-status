@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Live Beetwallet sales feed for ballbox.app "Ventas en vivo". Runs in GitHub Actions
-# (.github/workflows/sales-feed.yml) and, until Sebas turns it off, in ballbox-sales-feed.timer
-# on the Pi (pi-config/systemd/user/), every 5 minutes.
+# Live Beetwallet sales feed for ballbox.app "Ventas en vivo". Runs in ballbox-sales-feed.timer
+# on the Pi (pi-config/systemd/user/) every 5 minutes, and as a backup in GitHub Actions
+# (.github/workflows/sales-feed.yml) every 30 minutes.
 #
 # - Recent run: fetch the last 3 days of Beetwallet operations into a runtime file and send
 #   only transactions (no status/inventory snapshot rows in Ballbox).
