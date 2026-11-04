@@ -41,10 +41,10 @@ ADIDAS_MACHINE_CONFIG = [
     },
     {
         "slug": "almagro",
-        "label": "Adidas Almagro",
-        "site": "Lasaigues Almagro · Quintino Bocayuva 943",
+        "label": "Premium Padel Center",
+        "site": "Premium Padel Center · Tortuguitas (Pilar)",
         "machine_id": "2601070184",
-        "status_note": "TCN id agregado por handoff orquestador. Confirmar visibilidad vendor en refresh periódico.",
+        "status_note": "Mudada el 2026-10-30 de Lasaigues Almagro a Tortuguitas. El slug sigue en almagro; el label tiene que coincidir con config/beetwallet_stations.json para que el snapshot cruce las ventas.",
     },
 ]
 BEETWALLET_SUMMARY_PATH = ROOT / "data" / "beetwallet_summary.json"
