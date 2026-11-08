@@ -3,6 +3,7 @@ import json
 import math
 import os
 import sys
+import time
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -44,8 +45,19 @@ def post_json(url: str, payload: dict, headers=None):
     req.add_header('Content-Type', 'application/json')
     for key, value in (headers or {}).items():
         req.add_header(key, value)
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return json.loads(resp.read().decode('utf-8'))
+    # Beetwallet times out intermittently (f-097-adjacent: 15 isolated exit-1 runs/day,
+    # every one self-healing on the next 5-min cycle). One retry absorbs that instead of
+    # failing the whole feed and paging Sebas for something gone by the next cycle.
+    last_err = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return json.loads(resp.read().decode('utf-8'))
+        except TimeoutError as exc:
+            last_err = exc
+            if attempt == 0:
+                time.sleep(5)
+    raise last_err
 
 
 def main():
