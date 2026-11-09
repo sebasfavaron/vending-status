@@ -26,6 +26,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -346,29 +347,42 @@ def post_payload(base_url: str, secret: str, payload: dict, timeout: int = 60):
     request.add_header("Content-Type", "application/json")
     request.add_header("Authorization", f"Bearer {secret}")
 
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            body_text = response.read().decode("utf-8", errors="replace")
+    # ballbox.app times out intermittently reading the response (not just connecting):
+    # Python's urllib only wraps a connect-phase timeout into URLError, so a read-phase
+    # timeout escapes both except clauses below as a bare TimeoutError and crashes the
+    # whole 5-min job (rec-143: 11 of 19 ballbox-sales-feed.service failures in 24h).
+    # One retry absorbs that instead of failing the job for something gone by the next cycle.
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                body_text = response.read().decode("utf-8", errors="replace")
+                try:
+                    body = json.loads(body_text)
+                except json.JSONDecodeError:
+                    body = {"raw": body_text}
+                return response.status, body
+        except urllib.error.HTTPError as error:
+            body_text = error.read().decode("utf-8", errors="replace")
             try:
                 body = json.loads(body_text)
             except json.JSONDecodeError:
                 body = {"raw": body_text}
-            return response.status, body
-    except urllib.error.HTTPError as error:
-        body_text = error.read().decode("utf-8", errors="replace")
-        try:
-            body = json.loads(body_text)
-        except json.JSONDecodeError:
-            body = {"raw": body_text}
-        return error.code, body
-    except urllib.error.URLError as error:
-        # Broader than HTTPError (which is itself a URLError subclass and is
-        # caught above so its HTTP-specific body parsing still runs first):
-        # covers connection-refused, DNS failure, and timeouts, none of which
-        # produce an HTTP response to read a body from. Surface the same
-        # ok/error/details JSON shape the Ballbox endpoint itself uses instead
-        # of letting a raw traceback escape from an unattended import job.
-        return None, {"ok": False, "error": "REQUEST_FAILED", "details": str(error.reason)}
+            return error.code, body
+        except urllib.error.URLError as error:
+            # Broader than HTTPError (which is itself a URLError subclass and is
+            # caught above so its HTTP-specific body parsing still runs first):
+            # covers connection-refused, DNS failure, and connect-phase timeouts, none
+            # of which produce an HTTP response to read a body from.
+            if attempt == 0:
+                time.sleep(5)
+                continue
+            return None, {"ok": False, "error": "REQUEST_FAILED", "details": str(error.reason)}
+        except TimeoutError as error:
+            # Read-phase timeout: urlopen does not wrap this one into URLError.
+            if attempt == 0:
+                time.sleep(5)
+                continue
+            return None, {"ok": False, "error": "REQUEST_FAILED", "details": str(error)}
 
 
 def main():
