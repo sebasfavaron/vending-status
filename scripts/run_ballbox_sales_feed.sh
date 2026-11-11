@@ -17,6 +17,7 @@
 #                                       (default ~/runtime/secrets/ballbox-machine-data.env)
 #   BALLBOX_BASE_URL                    default https://ballbox.app
 #   BEET_USERNAME, BEET_PASSWORD        Beetwallet (or .env in this repo)
+#   BEET_USERNAME_2.._9, BEET_PASSWORD_2.._9  other operator accounts (Tortuguitas), optional
 #   OURVEND_USERNAME, OURVEND_PASSWORD  full run only; when unset, read from OURVEND_ENV
 #                                       (default ~/runtime/secrets/ourvend.env)
 #   SALES_FEED_STATE_DIR                default ~/runtime/ballbox/state

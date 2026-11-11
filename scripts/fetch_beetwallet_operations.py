@@ -60,18 +60,22 @@ def post_json(url: str, payload: dict, headers=None):
     raise last_err
 
 
-def main():
-    desde = sys.argv[1] if len(sys.argv) > 1 else getenv('DEFAULT_FROM', ALL_TIME_FROM)
-    hasta = sys.argv[2] if len(sys.argv) > 2 else getenv('DEFAULT_TO', ALL_TIME_TO)
+def accounts():
+    """Operator accounts to read: BEET_USERNAME/BEET_PASSWORD, then BEET_USERNAME_2.._9.
 
-    api = getenv('BEET_API_BASE', 'https://api.beetwallet.com').rstrip('/')
-    user = getenv('BEET_USERNAME')
-    password = getenv('BEET_PASSWORD')
+    Each club whose own Mercado Pago collects has its own BeetWallet operator account, and an
+    account only sees its own stations (Tortuguitas, BW059E1AF4F8, left the Adidas account).
+    """
+    found = []
+    for suffix in [''] + [f'_{n}' for n in range(2, 10)]:
+        user = getenv(f'BEET_USERNAME{suffix}')
+        password = getenv(f'BEET_PASSWORD{suffix}')
+        if user and password:
+            found.append((user, password))
+    return found
 
-    if not user or not password:
-        print('Falta BEET_USERNAME o BEET_PASSWORD en .env', file=sys.stderr)
-        sys.exit(1)
 
+def fetch_account(api: str, user: str, password: str, desde: str, hasta: str):
     login_resp = post_json(f'{api}/login-operadores', {
         'action': 'login-operadores',
         'usuario': user,
@@ -79,9 +83,7 @@ def main():
     })
     token = login_resp.get('token')
     if not token:
-        print(json.dumps(login_resp, indent=2, ensure_ascii=False), file=sys.stderr)
-        print('No pude obtener token', file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f'No pude obtener token para {user}: {login_resp.get("message") or login_resp.get("error") or "sin token"}')
 
     def fetch_page(page: int):
         return post_json(
@@ -113,6 +115,56 @@ def main():
             user_data = json.loads(resp.read().decode('utf-8'))
     except Exception:
         user_data = None
+    return operations, total_count, pages, user_data
+
+
+def merge_operations(batches):
+    """Concatenates every account's operations in API order, once per `_id`."""
+    seen = set()
+    merged = []
+    for operations in batches:
+        for op in operations:
+            key = op.get('_id')
+            if key is not None and key in seen:
+                continue
+            seen.add(key)
+            merged.append(op)
+    return merged
+
+
+def main():
+    desde = sys.argv[1] if len(sys.argv) > 1 else getenv('DEFAULT_FROM', ALL_TIME_FROM)
+    hasta = sys.argv[2] if len(sys.argv) > 2 else getenv('DEFAULT_TO', ALL_TIME_TO)
+
+    api = getenv('BEET_API_BASE', 'https://api.beetwallet.com').rstrip('/')
+    found = accounts()
+    if not found or not getenv('BEET_USERNAME'):
+        print('Falta BEET_USERNAME o BEET_PASSWORD en .env', file=sys.stderr)
+        sys.exit(1)
+
+    batches = []
+    total_count = 0
+    pages = 0
+    user_data = None
+    failed = []
+    for index, (user, password) in enumerate(found):
+        try:
+            operations, count, account_pages, account_data = fetch_account(api, user, password, desde, hasta)
+        except Exception as exc:
+            # The main account failing stops the run, as before. An extra account failing must
+            # not hide the main account's sales: it is reported and the run goes on without it.
+            if index == 0:
+                print(str(exc), file=sys.stderr)
+                sys.exit(1)
+            print(f'Beetwallet: cuenta extra {user} sin datos: {exc}', file=sys.stderr)
+            failed.append(user)
+            continue
+        batches.append(operations)
+        total_count += count
+        pages += account_pages
+        if index == 0:
+            user_data = account_data
+    operations = merge_operations(batches)
 
     TARGET.parent.mkdir(parents=True, exist_ok=True)
     # Write then rename: a reader (report, exporter) never sees a half-written file.
@@ -124,6 +176,8 @@ def main():
             'count': len(operations),
             'source_count': total_count,
             'pages': pages,
+            'accounts': len(found) - len(failed),
+            'accounts_failed': failed,
             'generated_at': date.today().isoformat(),
         },
         'operations': operations,

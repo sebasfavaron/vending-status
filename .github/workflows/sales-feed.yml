@@ -77,6 +77,9 @@ jobs:
           BALLBOX_BASE_URL: https://ballbox.app
           BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
           BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+          # Second BeetWallet operator account (Tortuguitas); optional.
+          BEET_USERNAME_2: ${{ secrets.BEET_USERNAME_2 }}
+          BEET_PASSWORD_2: ${{ secrets.BEET_PASSWORD_2 }}
           OURVEND_USERNAME: ${{ secrets.OURVEND_USERNAME }}
           OURVEND_PASSWORD: ${{ secrets.OURVEND_PASSWORD }}
           SALES_FEED_STATE_DIR: ${{ runner.temp }}/state

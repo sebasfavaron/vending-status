@@ -101,6 +101,9 @@ jobs:
         env:
           BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
           BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+          # Second BeetWallet operator account (Tortuguitas); optional.
+          BEET_USERNAME_2: ${{ secrets.BEET_USERNAME_2 }}
+          BEET_PASSWORD_2: ${{ secrets.BEET_PASSWORD_2 }}
         run: python3 scripts/fetch_beetwallet_operations.py > /dev/null
 
       - name: Render and send the review copy
@@ -181,6 +184,9 @@ jobs:
         env:
           BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
           BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+          # Second BeetWallet operator account (Tortuguitas); optional.
+          BEET_USERNAME_2: ${{ secrets.BEET_USERNAME_2 }}
+          BEET_PASSWORD_2: ${{ secrets.BEET_PASSWORD_2 }}
         run: python3 scripts/fetch_beetwallet_operations.py > /dev/null
 
       - name: Send to the client
