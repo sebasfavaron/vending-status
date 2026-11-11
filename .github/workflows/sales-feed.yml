@@ -77,6 +77,8 @@ jobs:
           BALLBOX_BASE_URL: https://ballbox.app
           BEET_USERNAME: ${{ secrets.BEET_USERNAME }}
           BEET_PASSWORD: ${{ secrets.BEET_PASSWORD }}
+          BEET2_USERNAME: ${{ secrets.BEET2_USERNAME }}
+          BEET2_PASSWORD: ${{ secrets.BEET2_PASSWORD }}
           OURVEND_USERNAME: ${{ secrets.OURVEND_USERNAME }}
           OURVEND_PASSWORD: ${{ secrets.OURVEND_PASSWORD }}
           SALES_FEED_STATE_DIR: ${{ runner.temp }}/state

@@ -8,6 +8,9 @@
 # - Full run, every 6 hours (or with --full): OurVend status + inventory, all Beetwallet
 #   operations (data/beetwallet_operations.json, also read by the monthly report) and the full
 #   export.
+# - Both runs also read the second Beetwallet account (BEET2_) when it has credentials, into
+#   SALES_FEED_STATE_DIR only: data/beetwallet_operations.json stays the first account's, which
+#   the monthly Adidas report reads.
 #
 # Usage: run_ballbox_sales_feed.sh [--full | --recent]
 #   no flag: full when the last full run is 6 hours old (state in SALES_FEED_STATE_DIR), else recent.
@@ -17,6 +20,8 @@
 #                                       (default ~/runtime/secrets/ballbox-machine-data.env)
 #   BALLBOX_BASE_URL                    default https://ballbox.app
 #   BEET_USERNAME, BEET_PASSWORD        Beetwallet (or .env in this repo)
+#   BEET2_USERNAME, BEET2_PASSWORD      second Beetwallet operator account (or .env); when unset,
+#                                       only the first account is read
 #   OURVEND_USERNAME, OURVEND_PASSWORD  full run only; when unset, read from OURVEND_ENV
 #                                       (default ~/runtime/secrets/ourvend.env)
 #   SALES_FEED_STATE_DIR                default ~/runtime/ballbox/state
@@ -45,6 +50,8 @@ else
   exec 3>&2
 fi
 RECENT_OPERATIONS="$STATE_DIR/beetwallet_operations_recent.json"
+SECOND_RECENT_OPERATIONS="$STATE_DIR/beetwallet_operations_beet2_recent.json"
+SECOND_ALL_OPERATIONS="$STATE_DIR/beetwallet_operations_beet2.json"
 LAST_FULL="$STATE_DIR/sales-feed-last-full"
 FULL_EVERY_SECONDS=$((6 * 3600))
 
@@ -110,17 +117,45 @@ esac
 # One line per export: the endpoint's verdict, counts and how many warnings, not the whole response.
 summary() { python3 -c 'import json,sys; b=json.load(sys.stdin); s={k: b[k] for k in ("ok", "replayed", "status", "counts", "error") if k in b}; s["warnings"]=len(b.get("warnings") or []); print(json.dumps(s, separators=(",", ":")))'; }
 
+# The second account's operations, as --extra-operations for the exporter. Its failure does not
+# stop the first account's sales: it is one Telegram when it starts failing and one when it
+# recovers. Without credentials it adds nothing.
+SECOND_DOWN_FLAG="$STATE_DIR/sales-feed-beet2-down"
+extra=()
+fetch_second_account() {
+  local out="$1"; shift
+  rm -f "$out"
+  if BEET_ACCOUNT_PREFIX=BEET2_ BEET_OPTIONAL=1 BEET_OPERATIONS_OUT="$out" \
+      python3 scripts/fetch_beetwallet_operations.py "$@" >/dev/null 2>&3; then
+    if [[ -f "$out" ]]; then
+      extra=(--extra-operations "$out")
+      if [[ -f "$SECOND_DOWN_FLAG" ]]; then
+        notify "✅ Feed de ventas: la segunda cuenta BeetWallet volvió (caída desde $(cat "$SECOND_DOWN_FLAG"))."
+        rm -f "$SECOND_DOWN_FLAG"
+      fi
+    fi
+  else
+    echo "second Beetwallet account fetch failed; sending the first account only" >&2
+    if [[ ! -f "$SECOND_DOWN_FLAG" ]]; then
+      stamp > "$SECOND_DOWN_FLAG"
+      notify "⚠️ Feed de ventas: falla la segunda cuenta BeetWallet (BEET2_). Sus ventas no llegan al admin."
+    fi
+  fi
+}
+
 if (( full )); then
   echo "$(stamp) full export to $BALLBOX_BASE_URL"
   python3 scripts/fetch_status.py >/dev/null 2>&3 || echo "status fetch failed; exporting the last status snapshot" >&2
   rm -f runtime/vending-web/cache/adidas_inventory_views.json
   python3 scripts/build_adidas_snapshot.py >/dev/null 2>&3 || echo "inventory snapshot failed; exporting the last one" >&2
   python3 scripts/fetch_beetwallet_operations.py >/dev/null 2>&3 || { echo "Beetwallet fetch failed" >&2; exit 1; }
-  python3 scripts/export_ballbox_import.py 2>&3 | summary
+  fetch_second_account "$SECOND_ALL_OPERATIONS"
+  python3 scripts/export_ballbox_import.py "${extra[@]}" 2>&3 | summary
   touch "$LAST_FULL"
 else
   since="$(python3 -c 'from datetime import datetime, timedelta; from zoneinfo import ZoneInfo; print((datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")) - timedelta(days=2)).date())')"
   echo "$(stamp) transactions since $since to $BALLBOX_BASE_URL"
   BEET_OPERATIONS_OUT="$RECENT_OPERATIONS" python3 scripts/fetch_beetwallet_operations.py "$since" 2100-01-01 >/dev/null 2>&3 || { echo "Beetwallet fetch failed" >&2; exit 1; }
-  python3 scripts/export_ballbox_import.py --transactions-only --operations "$RECENT_OPERATIONS" 2>&3 | summary
+  fetch_second_account "$SECOND_RECENT_OPERATIONS" "$since" 2100-01-01
+  python3 scripts/export_ballbox_import.py --transactions-only --operations "$RECENT_OPERATIONS" "${extra[@]}" 2>&3 | summary
 fi
