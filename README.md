@@ -200,6 +200,7 @@ replays.
 | `BALLBOX_MACHINE_DATA_SHARED_SECRET` | read from `BALLBOX_MACHINE_DATA_ENV` (`~/runtime/secrets/ballbox-machine-data.env`) |
 | `BALLBOX_BASE_URL` | `https://ballbox.app` |
 | `BEET_USERNAME`, `BEET_PASSWORD` | `.env` in this repo |
+| `BEET2_USERNAME`, `BEET2_PASSWORD` | `.env` in this repo; unset reads only the first account |
 | `OURVEND_USERNAME`, `OURVEND_PASSWORD` (full only) | read from `OURVEND_ENV` (`~/runtime/secrets/ourvend.env`) |
 | `SALES_FEED_STATE_DIR` | `~/runtime/ballbox/state` |
 
@@ -209,10 +210,15 @@ Actions logs of this public repo are readable by anyone. Where `telegram-notify`
 it sends one Telegram when it starts failing and one when it recovers; in Actions a failed run is
 the alert.
 
+The second Beetwallet operator account (`BEET2_`, where the Tortuguitas reader charges since
+2026-10-30) goes to `SALES_FEED_STATE_DIR` only, never to `data/`: the monthly Adidas report
+reads `data/beetwallet_operations.json`. When its fetch fails, the run still sends the first
+account's sales and Telegram says so once.
+
 Actions gotchas:
 
 - secrets: `BALLBOX_MACHINE_DATA_SHARED_SECRET` (the value set in Vercel), `BEET_USERNAME`,
-  `BEET_PASSWORD`, `OURVEND_USERNAME`, `OURVEND_PASSWORD`, and for the full run
+  `BEET_PASSWORD`, optionally `BEET2_USERNAME` and `BEET2_PASSWORD`, `OURVEND_USERNAME`, `OURVEND_PASSWORD`, and for the full run
   `MONTHLY_REPORT_CONFIG_TGZ_B64` (machine metadata and slot mapping);
 - GitHub runs schedules best-effort and can skip hours; Ballbox shows "data is old" after 20
   minutes without a check, so Actions alone cannot keep "Ventas en vivo" fresh;

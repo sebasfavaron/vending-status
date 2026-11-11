@@ -12,10 +12,15 @@ Contract this must match:
 
 Usage:
   python3 scripts/export_ballbox_import.py [--dry-run] [--pretty] [--transactions-only] [--operations PATH]
+                                         [--extra-operations PATH ...]
 
 --transactions-only sends Beetwallet transactions with `machines: []`: Ballbox writes
 no status or inventory snapshot for it (run by scripts/run_ballbox_sales_feed.sh
 every 5 minutes; the full export runs every 6 hours).
+
+--extra-operations adds the operations of another Beetwallet operator account (the
+run script passes the BEET2_ account's file). Operations are merged by `_id`; a
+missing extra file counts as no operations.
 
 Env:
   BALLBOX_BASE_URL                     Ballbox base URL (default http://localhost:3000)
@@ -301,8 +306,27 @@ def build_transactions_input(operations_payload):
     return transactions_input
 
 
-def build_payload(transactions_only: bool = False, operations_path: Path = OPERATIONS_PATH):
-    operations_payload = load_json(operations_path, {}) or {}
+def load_operations(operations_path: Path, extra_operations_paths=()):
+    """One operations payload from the main file plus any other account's files, by `_id`."""
+    operations = []
+    seen_ids = set()
+    for path in [operations_path, *extra_operations_paths]:
+        for op in (load_json(path, {}) or {}).get("operations") or []:
+            op_id = op.get("_id")
+            if op_id is not None and op_id in seen_ids:
+                continue
+            if op_id is not None:
+                seen_ids.add(op_id)
+            operations.append(op)
+    return {"operations": operations}
+
+
+def build_payload(
+    transactions_only: bool = False,
+    operations_path: Path = OPERATIONS_PATH,
+    extra_operations_paths=(),
+):
+    operations_payload = load_operations(operations_path, extra_operations_paths)
 
     if transactions_only:
         machines = []
@@ -400,13 +424,24 @@ def main():
         default=OPERATIONS_PATH,
         help="Beetwallet operations file (default data/beetwallet_operations.json).",
     )
+    parser.add_argument(
+        "--extra-operations",
+        type=Path,
+        action="append",
+        default=[],
+        help="Operations file of another Beetwallet account; repeatable, merged by _id.",
+    )
     args = parser.parse_args()
 
     env = load_env(ENV_PATH)
     base_url = getenv(env, "BALLBOX_BASE_URL", DEFAULT_BALLBOX_BASE_URL)
     secret = getenv(env, "BALLBOX_MACHINE_DATA_SHARED_SECRET")
 
-    payload = build_payload(transactions_only=args.transactions_only, operations_path=args.operations)
+    payload = build_payload(
+        transactions_only=args.transactions_only,
+        operations_path=args.operations,
+        extra_operations_paths=args.extra_operations,
+    )
 
     if args.dry_run:
         indent = 2 if args.pretty else None

@@ -354,6 +354,52 @@ class TransactionsOnlyPayloadTests(unittest.TestCase):
         self.assertEqual(first["idempotencyKey"], second["idempotencyKey"])
 
 
+class SecondAccountOperationsTests(unittest.TestCase):
+    OP = (
+        '{{"_id": "{id}", "estacion": {{"_id": "{st}"}}, "fecha": "{fecha}",'
+        ' "monto": 25000, "status": "finalizado", "venta": {{"seleccion": 5}}}}'
+    )
+
+    def write_ops(self, path, *ops):
+        path.write_text('{"operations": [' + ", ".join(self.OP.format(**op) for op in ops) + "]}")
+
+    def build(self, tmp_dir, operations_path, extra):
+        with mock.patch.object(export_ballbox_import, "STATUS_PATH", tmp_dir / "missing.json"), mock.patch.object(
+            export_ballbox_import, "ADIDAS_PATH", tmp_dir / "missing.json"
+        ):
+            return export_ballbox_import.build_payload(
+                transactions_only=True, operations_path=operations_path, extra_operations_paths=extra
+            )
+
+    def test_sends_both_accounts_sales_once_each(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        adidas = tmp_dir / "recent.json"
+        second = tmp_dir / "beet2_recent.json"
+        self.write_ops(adidas, {"id": "op1", "st": "st1", "fecha": "2026-11-06T20:00:00.000Z"})
+        # The same operation in both files (a station moved between accounts) is sent once.
+        self.write_ops(
+            second,
+            {"id": "op2", "st": "st9", "fecha": "2026-11-07T17:06:16.000Z"},
+            {"id": "op1", "st": "st1", "fecha": "2026-11-06T20:00:00.000Z"},
+        )
+
+        payload = self.build(tmp_dir, adidas, [second])
+
+        self.assertEqual([t["externalId"] for t in payload["transactions"]], ["op1", "op2"])
+        self.assertEqual(payload["sourceGeneratedAt"], "2026-11-07T17:06:16.000Z")
+
+    def test_missing_second_account_file_sends_the_same_request(self):
+        tmp_dir = Path(tempfile.mkdtemp())
+        adidas = tmp_dir / "recent.json"
+        self.write_ops(adidas, {"id": "op1", "st": "st1", "fecha": "2026-11-06T20:00:00.000Z"})
+
+        without = self.build(tmp_dir, adidas, [])
+        with_missing = self.build(tmp_dir, adidas, [tmp_dir / "beet2_recent.json"])
+
+        # No credentials for the second account -> no file -> Ballbox replays as before.
+        self.assertEqual(without["idempotencyKey"], with_missing["idempotencyKey"])
+
+
 class PostPayloadTests(unittest.TestCase):
     def test_url_error_returns_clean_error_tuple_instead_of_raising(self):
         with mock.patch(

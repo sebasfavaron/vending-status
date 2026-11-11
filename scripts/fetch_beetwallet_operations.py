@@ -17,6 +17,11 @@ DATA_DIR = ROOT / 'data'
 # BEET_OPERATIONS_OUT writes somewhere else: the 5-minute Ballbox feed fetches only the
 # last days and must not replace the all-time file the monthly report reads.
 TARGET = Path(os.environ.get('BEET_OPERATIONS_OUT') or DATA_DIR / 'beetwallet_operations.json')
+# BEET_ACCOUNT_PREFIX=BEET2_ logs in with BEET2_USERNAME / BEET2_PASSWORD, another operator
+# account (the Tortuguitas reader charges into one since 2026-10-30). BEET_OPTIONAL=1 exits 0
+# without writing when that account has no credentials.
+ACCOUNT_PREFIX = os.environ.get('BEET_ACCOUNT_PREFIX') or 'BEET_'
+OPTIONAL = os.environ.get('BEET_OPTIONAL') == '1'
 
 
 def load_env(path: Path):
@@ -65,11 +70,22 @@ def main():
     hasta = sys.argv[2] if len(sys.argv) > 2 else getenv('DEFAULT_TO', ALL_TIME_TO)
 
     api = getenv('BEET_API_BASE', 'https://api.beetwallet.com').rstrip('/')
-    user = getenv('BEET_USERNAME')
-    password = getenv('BEET_PASSWORD')
+    if not ACCOUNT_PREFIX.replace('_', '').isalnum():
+        print(f'BEET_ACCOUNT_PREFIX inválido: {ACCOUNT_PREFIX!r}', file=sys.stderr)
+        sys.exit(2)
+    # The monthly report and other scripts read data/beetwallet_operations.json as the Adidas
+    # account's operations: another account writes only where BEET_OPERATIONS_OUT says.
+    if ACCOUNT_PREFIX != 'BEET_' and not os.environ.get('BEET_OPERATIONS_OUT'):
+        print(f'{ACCOUNT_PREFIX} necesita BEET_OPERATIONS_OUT fuera de data/', file=sys.stderr)
+        sys.exit(2)
+
+    user = getenv(f'{ACCOUNT_PREFIX}USERNAME')
+    password = getenv(f'{ACCOUNT_PREFIX}PASSWORD')
 
     if not user or not password:
-        print('Falta BEET_USERNAME o BEET_PASSWORD en .env', file=sys.stderr)
+        if OPTIONAL:
+            sys.exit(0)
+        print(f'Falta {ACCOUNT_PREFIX}USERNAME o {ACCOUNT_PREFIX}PASSWORD en .env', file=sys.stderr)
         sys.exit(1)
 
     login_resp = post_json(f'{api}/login-operadores', {
