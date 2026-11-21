@@ -182,7 +182,9 @@ Full request/response contract:
 `scripts/run_ballbox_sales_feed.sh [--full | --recent]` runs in `ballbox-sales-feed.timer` on
 the Pi (pi-config `systemd/user/`), every 5 minutes, and as a backup in GitHub Actions
 (`.github/workflows/sales-feed.yml`): recent every 30 minutes, full every 6 hours. The Pi stays
-primary because GitHub's 5-minute cron fired once in 6 hours (2026-11-03). Both can run at once: Ballbox skips a sale it already has
+primary because GitHub's 5-minute cron fired once in 6 hours (2026-11-03). `pinger/` is a
+Cloudflare Worker that starts the recent run every 5 minutes through `workflow_dispatch`, so the feed
+can stop needing the Pi (`pinger/README.md`; not deployed yet). Both can run at once: Ballbox skips a sale it already has
 (`externalId`), and two feeds that fetched the same sales send the same request, which Ballbox
 replays.
 
